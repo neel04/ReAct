@@ -1,19 +1,6 @@
 import torch
 import torch.nn.functional as F
 import math
-import einops
-
-from dataclasses import dataclass
-from tqdm import tqdm
-
-@dataclass
-class ALiBiConfig:
-    num_layers: int = 1
-    d_model: int = 512
-    num_heads: int = 16
-    max_len: int = 16
-    dropout: float = 0.0
-    causal: bool = False
 
 def get_relative_positions(seq_len: int, device: torch.device) -> torch.tensor:
     x = torch.arange(seq_len)[None, :].to(device, non_blocking=True)
@@ -30,16 +17,19 @@ def get_alibi_slope(num_heads):
     )
 
 class OptimizedALiBiMultiHeadAttention(torch.nn.Module):
-    def __init__(self, config) -> None:
+    def __init__(self, d_model, num_heads, dropout=0.0) -> None:
         super().__init__()
-        self.causal = config.causal
-        self.num_heads = config.num_heads
-        self.scale = math.sqrt(config.d_model)
-        self.dropout = torch.nn.Dropout(config.dropout)
+        self.num_heads = num_heads
+        self.scale = math.sqrt(d_model)
+        self.dropout = torch.nn.Dropout(dropout)
         self.register_buffer("m", get_alibi_slope(self.num_heads))
-        self.kqv = torch.nn.Linear(config.d_model, 3 * config.d_model, bias=False)
+        self.kqv = torch.nn.Linear(d_model, 3 * d_model, bias=False)
 
-    def forward(self, x: torch.tensor) -> torch.tensor:
+    def forward(self, q: torch.tensor, k: torch.tensor, v: torch.tensor, need_weights=False) -> torch.tensor:
+        assert q.shape == k.shape == v.shape, "q, k, v must have the same shape and should be the SAME tensor" # We accept 3 tensors to keep APi consistent with torch.nn.MultiHeadAttention
+        assert need_weights == False, "We do not support returning attention weights"
+        x = q # Use any, q, k, v
+
         batch_size, seq_len, _ = x.shape
 
         key, query, value = self.kqv(x).chunk(3, dim=-1)
@@ -61,4 +51,4 @@ class OptimizedALiBiMultiHeadAttention(torch.nn.Module):
         # out.shape == (batch_size, seq_len, d_model)
         out = self.dropout(out)
 
-        return out
+        return (out)
