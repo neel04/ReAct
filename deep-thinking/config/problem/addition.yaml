@@ -1,0 +1,15 @@
+defaults:
+  - hyp: addition_default
+  - model: dt_net_recall_1d
+
+name: addition
+test_data: 5_000
+train_data: 50_000
+
+model:
+  model_path: 
+  width: 384
+  max_iters: 20
+  test_iterations:
+    low: 20
+    high: 40 

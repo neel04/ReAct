@@ -1,0 +1,10 @@
+defaults:
+  - hyp: chess_default
+  - model: dt_net_recall_2d
+
+name: chess
+test_data: 700_000
+train_data: 600_000
+
+model:
+  width: 512

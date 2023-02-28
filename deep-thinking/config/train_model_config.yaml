@@ -1,0 +1,15 @@
+defaults:
+  - problem: prefix_sums
+  - override hydra/job_logging: custom
+  - _self_
+
+hydra:
+  run:
+    dir: ./outputs/${name}/training-${run_id}
+  job_logging:
+    handlers:
+      file:
+        filename: train.log
+
+train_log: train_log
+name: training_default
