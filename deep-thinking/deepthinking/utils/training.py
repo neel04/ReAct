@@ -55,6 +55,9 @@ def train(net, loaders, mode, train_setup, device):
     return loss, acc, train_mae, train_elem_acc, train_seq_acc
 
 def train_progressive(net, loaders, train_setup, device):
+    # Seeding everything right from the start
+    torch.manual_seed(69)
+    torch.cuda.manual_seed_all(69)
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer

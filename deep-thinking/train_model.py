@@ -33,7 +33,6 @@ import deepthinking.utils.logging_utils as lg
 #     Too many local variables (R0914), Missing docstring (C0116, C0115).
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 # seed everything with torch
-torch.manual_seed(69)
 
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
