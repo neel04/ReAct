@@ -65,11 +65,13 @@ def train_progressive(net, loaders, train_setup, device):
     k = 0
     problem = train_setup.problem
     clip = train_setup.clip
+
     #criterion = lambda x, y: torch.nn.MSELoss(reduction='none')(x, y) * 5 # alpha = 5
     # TODO: Use weights
     weights = torch.ones(13).to(device)
     weights[11] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weights)
+    accum_iters = 3
 
     train_loss = 0
     correct = 0
@@ -82,8 +84,6 @@ def train_progressive(net, loaders, train_setup, device):
         targets = targets.view(targets.size(0), -1)
         if problem == "mazes":
             mask = inputs.view(inputs.size(0), inputs.size(1), -1).max(dim=1)[0] > 0
-
-        optimizer.zero_grad()
 
         # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
         # so we save time by settign it equal to 0).
@@ -114,11 +114,15 @@ def train_progressive(net, loaders, train_setup, device):
         loss_progressive_mean = loss_progressive.mean()
 
         loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
+        loss = loss / accum_iters # accumulate gradients
         loss.backward()
 
         if clip is not None:
             torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
-        optimizer.step()
+        
+        if (batch_idx + 1) % accum_iters == 0:
+            optimizer.step()
+            optimizer.zero_grad()
         
         train_loss += loss.item()
         predicted = get_predicted(inputs, outputs_max_iters, problem)
