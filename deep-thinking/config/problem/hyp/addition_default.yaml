@@ -1,7 +1,7 @@
 alpha: 1
 clip: 0.5
 epochs: 200
-lr: 4e-5 # 5e-4 does get to 98% elemennwise accuracy in 100 epochs
+lr: 1e-4 # 5e-4 does get to 98% elemennwise accuracy in 100 epochs
 lr_decay: cosine
 lr_factor: 0.1
 lr_schedule: #  CosineAnnealingLR Doesn't use this param
