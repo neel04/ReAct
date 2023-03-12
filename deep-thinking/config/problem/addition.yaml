@@ -7,7 +7,7 @@ test_data: 5_000
 train_data: 50_000
 
 model:
-  model_path: 
+  model_path: /fsx/awesome/DPT/outputs/undrunk_Aletta_model_best.pth 
   width: 384
   max_iters: 20
   test_iterations:

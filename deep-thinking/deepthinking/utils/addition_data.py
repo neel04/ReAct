@@ -115,20 +115,28 @@ def prepare_addition_loader(train_batch_size, test_batch_size, train_data, test_
                              num_workers=2,
                              batch_size=train_batch_size,
                              shuffle=shuffle,
-                             drop_last=True)
+                             drop_last=True,
+                             pin_memory=True,
+                             prefetch_factor=2)
 
     valloader = DataLoader(val_dataset,
                              num_workers=2,
                              batch_size=test_batch_size,
                              shuffle=False,
-                             drop_last=False)
+                             drop_last=False,
+                             pin_memory=True,
+                             persistent_workers=True,
+                             prefetch_factor=2)
 
     testloader = DataLoader(test_dataset,
                              num_workers=2,
                              batch_size=test_batch_size,
                              shuffle=False,
-                             drop_last=False)
- 
+                             drop_last=False,
+                             pin_memory=True,
+                             persistent_workers=True,
+                             prefetch_factor=4)
+
     loaders = {"train": trainloader, "test": testloader, "val": valloader}
 
     return loaders

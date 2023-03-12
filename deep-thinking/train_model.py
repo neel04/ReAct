@@ -67,7 +67,7 @@ def main(cfg: DictConfig):
     #               Dataset and Network and Optimizer
     loaders = dt.utils.get_dataloaders(cfg.problem)
 
-    net, start_epoch, optimizer_state_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
+    net, start_epoch, optimizer_state_dict, scaler_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
                                                                                  cfg.problem.model,
                                                                                  device)
     # JIT
@@ -96,7 +96,7 @@ def main(cfg: DictConfig):
     best_so_far = False
 
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
-        loss, acc, train_mae, train_elem_acc, train_seq_acc = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, scaler_dict=scaler_dict)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
 
@@ -142,7 +142,7 @@ def main(cfg: DictConfig):
         save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or \
                    (epoch + 1) == cfg.problem.hyp.epochs or best_so_far
         if save_now:
-            state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict()}
+            state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict()}
             out_str = f"model_{'best' if best_so_far else ''}.pth"
             best_so_far = False
             log.info(f"Saving model to: {out_str}")

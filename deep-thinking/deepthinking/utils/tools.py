@@ -166,7 +166,9 @@ def load_model_from_checkpoint(problem, model_args, device):
         epoch = new_state_dict["epoch"] + 1
         optimizer = new_state_dict["optimizer"]
 
-    return net, epoch, optimizer
+    # load AMP scaler
+    scaler = new_state_dict["scaler"] if "scaler" in new_state_dict.keys() else None
+    return net, epoch, optimizer, scaler
 
 
 def now():
