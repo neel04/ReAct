@@ -7,6 +7,10 @@
 #SBATCH --account laion
 #SBATCH --ntasks-per-node=1
 #SBATCH --requeue ## requeue the job if preempted
+<<<<<<< HEAD
+#SBATCH --priority=normal ## set priority to TOP
+=======
+>>>>>>> main
 #------------------------------------------------------
 #SBATCH --container-image=neel04/react_image:latest 
 #SBATCH --container-mounts=/fsx/awesome:/fsx/awesome

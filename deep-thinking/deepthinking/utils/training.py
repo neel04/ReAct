@@ -47,12 +47,12 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     return outputs, k
 
 
-def train(net, loaders, mode, train_setup, device):
+def train(net, loaders, mode, train_setup, device, scaler_dict=None):
     if mode == "progressive":
-        loss, acc, train_mae, train_elem_acc, train_seq_acc = train_progressive(net, loaders, train_setup, device)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = train_progressive(net, loaders, train_setup, device, scaler_dict)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
-    return loss, acc, train_mae, train_elem_acc, train_seq_acc
+    return loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler
 
 def train_progressive(net, loaders, train_setup, device):
     # Seeding everything right from the start
@@ -69,11 +69,13 @@ def train_progressive(net, loaders, train_setup, device):
     problem = train_setup.problem
     clip = train_setup.clip
 
+
     #criterion = lambda x, y: torch.nn.MSELoss(reduction='none')(x, y) * 5 # alpha = 5
-    # TODO: Use weights
+    #TODO: Use weights
     weights = torch.ones(13).to(device)
     weights[11] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weights)
+    accum_iters = 3
     accum_iters = 3
 
     train_loss = 0
@@ -81,52 +83,61 @@ def train_progressive(net, loaders, train_setup, device):
     total = 0
     train_metric, train_elem_acc, train_seq_acc = [], [], []
 
+    scaler = torch.cuda.amp.GradScaler()
+    scaler.load_state_dict(scaler_dict) if scaler_dict is not None else scaler
+    print(f"Scaled: {scaler.is_enabled()} | scaler: {scaler}")
+
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
-        inputs, targets = inputs.to(device).int(), targets.to(device).long()
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            inputs, targets = inputs.to(device).int(), targets.to(device).long()
+            
+            targets = targets.view(targets.size(0), -1)
+            if problem == "mazes":
+                mask = inputs.view(inputs.size(0), inputs.size(1), -1).max(dim=1)[0] > 0
 
-        targets = targets.view(targets.size(0), -1)
-        if problem == "mazes":
-            mask = inputs.view(inputs.size(0), inputs.size(1), -1).max(dim=1)[0] > 0
+            # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
+            # so we save time by settign it equal to 0).
+            outputs_max_iters, _ = net(inputs, iters_to_do=max_iters)
+            if alpha != 1:
+                outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
+                                                           outputs_max_iters.size(1), -1)
+                loss_max_iters = criterion(outputs_max_iters, targets)
+            else:
+                loss_max_iters = torch.zeros_like(targets).float()
 
-        # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
-        # so we save time by settign it equal to 0).
-        outputs_max_iters, _ = net(inputs, iters_to_do=max_iters)
-        if alpha != 1:
-            outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
-                                                       outputs_max_iters.size(1), -1)
-            loss_max_iters = criterion(outputs_max_iters, targets)
-        else:
-            loss_max_iters = torch.zeros_like(targets).float()
+            # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
+            # so we save time by setting it equal to 0).
+            if alpha != 0:
+                outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
+                loss_progressive = criterion(outputs, targets)
+            else:
+                loss_progressive = torch.zeros_like(targets).float()
 
-        # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
-        # so we save time by setting it equal to 0).
-        if alpha != 0:
-            outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-            outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
-            loss_progressive = criterion(outputs, targets)
-        else:
-            loss_progressive = torch.zeros_like(targets).float()
+            if problem == "mazes":
+                loss_max_iters = (loss_max_iters * mask)
+                loss_max_iters = loss_max_iters[mask > 0]
+                loss_progressive = (loss_progressive * mask)
+                loss_progressive = loss_progressive[mask > 0]
 
-        if problem == "mazes":
-            loss_max_iters = (loss_max_iters * mask)
-            loss_max_iters = loss_max_iters[mask > 0]
-            loss_progressive = (loss_progressive * mask)
-            loss_progressive = loss_progressive[mask > 0]
+            loss_max_iters_mean = loss_max_iters.mean()
+            loss_progressive_mean = loss_progressive.mean()
 
-        loss_max_iters_mean = loss_max_iters.mean()
-        loss_progressive_mean = loss_progressive.mean()
+            loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
+            loss = loss / accum_iters # accumulate gradients
 
-        loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
-        loss = loss / accum_iters # accumulate gradients
-        loss.backward()
+        scaler.scale(loss).backward()
 
-        if clip is not None:
-            torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
-        
         if (batch_idx + 1) % accum_iters == 0:
-            optimizer.step()
+            scaler.unscale_(optimizer) # unscale the gradients for clipping
+
+            if clip is not None:
+                torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
+            
+            scaler.step(optimizer)
+            scaler.update()
             optimizer.zero_grad()
-        
+
         train_loss += loss.item()
         predicted = get_predicted(inputs, outputs_max_iters, problem)
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
@@ -139,7 +150,7 @@ def train_progressive(net, loaders, train_setup, device):
 
         correct += torch.eq(targets, predicted).all().item()
         total += targets.size(0)
-        
+
     print(f'\nSample pred: {predicted[0]} | Sample answer: {targets[0]}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")
     print(f"\nTrain elementwise accuracy: {(sum(train_elem_acc)/len(train_elem_acc)) * 100}%\n")
@@ -147,9 +158,9 @@ def train_progressive(net, loaders, train_setup, device):
 
     train_loss = train_loss / (batch_idx + 1)
     acc = 100.0 * correct / total
-
     lr_scheduler.step()
     warmup_scheduler.dampen()
-    
-    return train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc)
-    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy
+
+    return (train_loss, acc, sum(train_metric)/len(train_metric), 
+            sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc), scaler)
+    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, and the scaler object

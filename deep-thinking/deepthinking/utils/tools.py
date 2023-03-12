@@ -151,6 +151,23 @@ def load_model_from_checkpoint(problem, model_args, device):
     if model_path is not None and os.path.exists(model_path):
         logging.info(f"\n{'$'*50}\nLoading model from checkpoint {model_path}...\n{'$'*50}")
         state_dict = torch.load(model_path, map_location=device)
+<<<<<<< HEAD
+=======
+
+        # check if keys are prefixed with "module."
+        new_state_dict = state_dict.copy()
+
+        for key in list(new_state_dict["net"].keys()):
+            new_key = key.replace('_orig_mod.', '') # remove _orig_mod. prefix
+            new_state_dict["net"][new_key] = state_dict['net'][key]
+            # remove old key
+            del new_state_dict["net"][key]
+        
+        # Now load fixed state_dict
+        net.load_state_dict(new_state_dict["net"])
+        epoch = new_state_dict["epoch"] + 1
+        optimizer = new_state_dict["optimizer"]
+>>>>>>> main
 
         # check if keys are prefixed with "module."
         new_state_dict = state_dict.copy()
@@ -166,7 +183,9 @@ def load_model_from_checkpoint(problem, model_args, device):
         epoch = new_state_dict["epoch"] + 1
         optimizer = new_state_dict["optimizer"]
 
-    return net, epoch, optimizer
+    # load AMP scaler
+    scaler = new_state_dict["scaler"] if "scaler" in new_state_dict.keys() else None
+    return net, epoch, optimizer, scaler
 
 
 def now():

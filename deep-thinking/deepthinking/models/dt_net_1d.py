@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 from torch import nn
 from .blocks import BasicBlock1D as BasicBlock
+from .alibi import OptimizedALiBiMultiHeadAttention as ALiBiMHSA, VanillaALiBi
 
 # Ignore statemenst for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -33,7 +34,7 @@ class AttentionBlock1D(nn.Module):
         self.width = width
         self.activation = NewGELU()
 
-        self.attn_head = nn.MultiheadAttention(self.width, self.width//32, bias=True, batch_first=True)
+        self.attn_head = VanillaALiBi(self.width, self.width//32, bias=True, batch_first=True, dropout=0.001)
         self.linear1 = nn.Linear(self.width, self.width)
 
         self.ln1 = nn.LayerNorm(self.width)
@@ -112,7 +113,7 @@ class DTNet1D(nn.Module):
 
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
         # x -> (batch, 16)
-        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
+        x = self.embed_layer(x) #+ self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
         initial_thought = self.projection(x)
 
         if interim_thought is None:
