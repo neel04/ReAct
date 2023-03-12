@@ -113,7 +113,7 @@ class DTNet1D(nn.Module):
 
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
         # x -> (batch, 16)
-        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
+        x = self.embed_layer(x) #+ self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
         initial_thought = self.projection(x)
 
         if interim_thought is None:

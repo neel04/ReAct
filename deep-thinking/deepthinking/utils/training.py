@@ -54,7 +54,10 @@ def train(net, loaders, mode, train_setup, device, scaler_dict=None):
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler
 
-def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
+def train_progressive(net, loaders, train_setup, device):
+    # Seeding everything right from the start
+    torch.manual_seed(69)
+    torch.cuda.manual_seed_all(69)
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
@@ -66,11 +69,13 @@ def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
     problem = train_setup.problem
     clip = train_setup.clip
 
+
     #criterion = lambda x, y: torch.nn.MSELoss(reduction='none')(x, y) * 5 # alpha = 5
     #TODO: Use weights
     weights = torch.ones(13).to(device)
     weights[11] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weights)
+    accum_iters = 3
     accum_iters = 3
 
     train_loss = 0
