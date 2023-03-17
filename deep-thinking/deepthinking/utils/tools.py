@@ -96,15 +96,15 @@ def get_optimizer(optim_args, model_args, net, state_dict):
         all_params = [{"params": base_params}]
 
     if optimizer_name == "sgd":
-        optimizer = SGD(all_params, lr=lr, weight_decay=2e-4, momentum=0.9)
+        optimizer = SGD(all_params, lr=lr, weight_decay=2e-3, momentum=0.9)
     elif optimizer_name == "adam":
-        optimizer = Adam(all_params, lr=lr, weight_decay=2e-4)
+        optimizer = Adam(all_params, lr=lr, weight_decay=2e-3)
     elif optimizer_name == "adamw":
-        optimizer = AdamW(all_params, lr=lr, weight_decay=2e-4)
+        optimizer = AdamW(all_params, lr=lr, weight_decay=2e-3)
     elif optimizer_name == "lion":
-        optimizer = Lion(all_params, lr=lr, weight_decay=2e-4, betas=(0.9, 0.99))
+        optimizer = Lion(all_params, lr=lr, weight_decay=2e-3, betas=(0.9, 0.99))
     elif optimizer_name == "adam_on_lion":
-        optimizer = AdamOnLion(all_params, lr=lr, weight_decay=2e-4, betas=(0.9, 0.99))
+        optimizer = AdamOnLion(all_params, lr=lr, weight_decay=2e-3, betas=(0.9, 0.99))
     else:
         raise ValueError(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented.")
 
@@ -151,23 +151,6 @@ def load_model_from_checkpoint(problem, model_args, device):
     if model_path is not None and os.path.exists(model_path):
         logging.info(f"\n{'$'*50}\nLoading model from checkpoint {model_path}...\n{'$'*50}")
         state_dict = torch.load(model_path, map_location=device)
-<<<<<<< HEAD
-=======
-
-        # check if keys are prefixed with "module."
-        new_state_dict = state_dict.copy()
-
-        for key in list(new_state_dict["net"].keys()):
-            new_key = key.replace('_orig_mod.', '') # remove _orig_mod. prefix
-            new_state_dict["net"][new_key] = state_dict['net'][key]
-            # remove old key
-            del new_state_dict["net"][key]
-        
-        # Now load fixed state_dict
-        net.load_state_dict(new_state_dict["net"])
-        epoch = new_state_dict["epoch"] + 1
-        optimizer = new_state_dict["optimizer"]
->>>>>>> main
 
         # check if keys are prefixed with "module."
         new_state_dict = state_dict.copy()
