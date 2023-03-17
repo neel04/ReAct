@@ -7,13 +7,9 @@ test_data: 5_000
 train_data: 50_000
 
 model:
-<<<<<<< HEAD
-  model_path: /fsx/awesome/DPT/outputs/undrunk_Aletta_model_best.pth 
-=======
-  model_path: /fsx/awesome/DPT/deep-thinking/outputs/addition_run/training-subtile-Deena/model_best.pth
->>>>>>> main
+  model_path:
   width: 384
-  max_iters: 20
+  max_iters: 10
   test_iterations:
-    low: 20
-    high: 40 
+    low: 10
+    high: 20 
