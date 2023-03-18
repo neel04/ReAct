@@ -57,6 +57,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
     net.eval()
     corrects = torch.zeros(max_iters)
     total = 0
+    incorrect_input, incorrect_output, incorrect_target = None, None, None
 
     with torch.no_grad():
         for inputs, targets in tqdm(testloader, leave=False):
@@ -66,10 +67,15 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
 
             for i in range(all_outputs.size(1)):
                 outputs = all_outputs[:, i]
-                predicted = get_predicted(inputs, outputs, problem)
+                old_predicted = get_predicted(inputs, outputs, problem)
                 targets = targets.view(targets.size(0), -1)
-                predicted = predicted.view(targets.size(0), -1)
+                predicted = old_predicted.view(targets.size(0), -1)
                 corrects[i] += torch.amin(predicted == targets, dim=[1]).sum().item()
+                # get a sample incorrect prediction to debug
+                if (old_predicted != targets).any():
+                        # find which one is incorrect
+                        incorrect_idx = (predicted != targets).nonzero()[0][0]
+                        incorrect_input, incorrect_output, incorrect_target = inputs[incorrect_idx], old_predicted[incorrect_idx].detach().round().int(), targets[incorrect_idx]
 
             total += targets.size(0)
 
@@ -83,6 +89,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
     best_val_acc, best_val_iteration = max(ret_acc.values()), max(ret_acc, key=ret_acc.get)
     if extra_metrics:
         print(f'DEBUG: RETURNING best_val_acc: {best_val_acc} | best_val_iteration: {best_val_iteration} | ret_acc: {ret_acc}')
+        print(f'\nDEBUG: INCORRECT VAL/TEST PREDICTION: input: {incorrect_input} | output: {incorrect_output} | target: {incorrect_target}')
         return ret_acc, best_val_acc, best_val_iteration # for validation set
     else:
         return ret_acc

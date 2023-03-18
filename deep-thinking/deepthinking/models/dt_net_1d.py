@@ -29,12 +29,12 @@ class NewGELU(nn.Module):
 class AttentionBlock1D(nn.Module):
     """Basic MHSA residual block class for DeepThinking """
     
-    def __init__(self, drop_rate, width):
+    def __init__(self, drop_rate:int, width:int):
         super().__init__()
         self.width = width
         self.activation = NewGELU()
 
-        self.attn_head = torch.nn.MultiheadAttention(self.width, self.width//32, bias=True, batch_first=True, dropout=0.01)
+        self.attn_head = torch.nn.MultiheadAttention(self.width, self.width//32, bias=True, batch_first=True, dropout=0.05)
         self.linear1 = nn.Linear(self.width, self.width)
 
         self.ln1 = nn.LayerNorm(self.width)
@@ -73,7 +73,7 @@ class DTNet1D(nn.Module):
         self.bottleneck = self.width // 2 # bottleneck width
         self.recall = recall
         self.SEQLEN = 16 # length of the input sequence
-        drop_rate = 0.05 # dropout rate
+        drop_rate = 0.1 # dropout rate
 
         self.reshape_layer = nn.Linear(self.width, self.bottleneck) # downsampling layer
         self.embed_layer = nn.Embedding(13, self.bottleneck, padding_idx=11) # embedding layer for the input sequence
@@ -138,16 +138,16 @@ class DTNet1D(nn.Module):
 
 
 def dt_net_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=False)
+    return DTNet1D(BasicBlock, 6, width, recall=False)
 
 
 def dt_net_recall_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=True)
+    return DTNet1D(BasicBlock, 6, width, recall=True)
 
 
 def dt_net_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=False, group_norm=True)
+    return DTNet1D(BasicBlock, 6, width, recall=False, group_norm=True)
 
 
 def dt_net_recall_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=True, group_norm=True)
+    return DTNet1D(BasicBlock, 6, width, recall=True, group_norm=True)
