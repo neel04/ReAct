@@ -9,11 +9,10 @@ class RoPE_MHA(torch.nn.Module):
         inner_dim = d_model * num_heads
         self.heads = num_heads
         self.scale = d_model ** -0.5
+        self.dropout_p = dropout
 
         self.to_qkv = torch.nn.Linear(d_model, inner_dim * 3, bias=bias)
         self.to_out = torch.nn.Linear(inner_dim, d_model)
-
-        self.dropout = torch.nn.Dropout(dropout)
 
         self.rotary_emb = RotaryEmbedding(dim = d_model)
 
@@ -28,11 +27,9 @@ class RoPE_MHA(torch.nn.Module):
         q = self.rotary_emb.rotate_queries_or_keys(q)
         k = self.rotary_emb.rotate_queries_or_keys(k)
 
-        dots = torch.einsum('bhid,bhjd->bhij', q, k) * self.scale
-        attn = dots.softmax(dim=-1)
-        attn = self.dropout(attn)
+        with torch.backends.cuda.sdp_kernel():
+            out = torch.nn.functional.scaled_dot_product_attention(q,k,v, dropout_p=self.dropout_p)
 
-        out = torch.einsum('bhij,bhjd->bhid', attn, v)
         out = out.transpose(1, 2).reshape(b, n, -1)
         out = self.to_out(out)
         return (out,)
