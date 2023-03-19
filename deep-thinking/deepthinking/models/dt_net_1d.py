@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from torch import nn
 from .blocks import BasicBlock1D as BasicBlock
 from .alibi import OptimizedALiBiMultiHeadAttention as ALiBiMHSA, VanillaALiBi
+from .rope import RoPE_MHA
 
 # Ignore statemenst for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -34,7 +35,7 @@ class AttentionBlock1D(nn.Module):
         self.width = width
         self.activation = NewGELU()
 
-        self.attn_head = torch.nn.MultiheadAttention(self.width, self.width//32, bias=True, batch_first=True, dropout=0.05)
+        self.attn_head = RoPE_MHA(self.width, self.width//32, bias=True, batch_first=True, dropout=0.05)
         self.linear1 = nn.Linear(self.width, self.width)
 
         self.ln1 = nn.LayerNorm(self.width)
@@ -138,16 +139,16 @@ class DTNet1D(nn.Module):
 
 
 def dt_net_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=False)
+    return DTNet1D(BasicBlock, 2, width, recall=False)
 
 
 def dt_net_recall_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=True)
+    return DTNet1D(BasicBlock, 2, width, recall=True)
 
 
 def dt_net_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=False, group_norm=True)
+    return DTNet1D(BasicBlock, 2, width, recall=False, group_norm=True)
 
 
 def dt_net_recall_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=True, group_norm=True)
+    return DTNet1D(BasicBlock, 2, width, recall=True, group_norm=True)

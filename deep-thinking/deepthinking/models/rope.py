@@ -8,7 +8,6 @@ class RoPE_MHA(torch.nn.Module):
 
         inner_dim = d_model * num_heads
         self.heads = num_heads
-        self.scale = d_model ** -0.5
         self.dropout_p = dropout
 
         self.to_qkv = torch.nn.Linear(d_model, inner_dim * 3, bias=bias)
