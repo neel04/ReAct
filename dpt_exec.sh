@@ -13,7 +13,7 @@
 #SBATCH --container-mounts=/fsx/awesome:/fsx/awesome
 #SBATCH --container-workdir=/fsx/awesome/DPT
 #SBATCH --container-writable
-#SBATCH --container-name=react_image
+#SBATCH --container-name=react_image_v1
 
 # Training on a slurm cluster
 # Personal WANDB API key
