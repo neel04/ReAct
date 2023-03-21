@@ -114,7 +114,7 @@ class DTNet1D(nn.Module):
 
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
         # x -> (batch, 16)
-        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
+        x = self.embed_layer(x) #+ self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
         initial_thought = self.projection(x)
 
         if interim_thought is None:
@@ -139,16 +139,16 @@ class DTNet1D(nn.Module):
 
 
 def dt_net_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=False)
+    return DTNet1D(BasicBlock, 4, width, recall=False)
 
 
 def dt_net_recall_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=True)
+    return DTNet1D(BasicBlock, 4, width, recall=True)
 
 
 def dt_net_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=False, group_norm=True)
+    return DTNet1D(BasicBlock, 4, width, recall=False, group_norm=True)
 
 
 def dt_net_recall_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 2, width, recall=True, group_norm=True)
+    return DTNet1D(BasicBlock, 4, width, recall=True, group_norm=True)
