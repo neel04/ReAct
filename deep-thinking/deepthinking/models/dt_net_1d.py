@@ -17,11 +17,17 @@ from torch import nn
 from .blocks import BasicBlock1D as BasicBlock
 from .alibi import OptimizedALiBiMultiHeadAttention as ALiBiMHSA, VanillaALiBi
 from .rope import RoPE_MHA
+from .flash_mha import FlashMultiHeadAttention
+
+# Enabling SDP backend
+#torch.backends.cuda.enable_flash_sdp(enabled=True)
+#print(f'\n{chr(0x26A1)*20}\nFlash Attention status: {torch.backends.cuda.flash_sdp_enabled()}\n{chr(0x26A1)*20}\n')
 
 # Ignore statemenst for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702)
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914
+
 
 class NewGELU(nn.Module):
     def forward(self, x):
@@ -35,7 +41,7 @@ class AttentionBlock1D(nn.Module):
         self.width = width
         self.activation = NewGELU()
 
-        self.attn_head = RoPE_MHA(self.width, self.width//32, bias=True, batch_first=True, dropout=0.05)
+        self.attn_head = torch.nn.MultiheadAttention(self.width, self.width//32, bias=True, batch_first=True, dropout=0.05)
         self.linear1 = nn.Linear(self.width, self.width)
 
         self.ln1 = nn.LayerNorm(self.width)
@@ -73,7 +79,7 @@ class DTNet1D(nn.Module):
         self.width = int(width) # width of the network layers
         self.bottleneck = self.width // 2 # bottleneck width
         self.recall = recall
-        self.SEQLEN = 16 # length of the input sequence
+        self.SEQLEN = 64 # length of the input sequence
         drop_rate = 0.1 # dropout rate
 
         self.reshape_layer = nn.Linear(self.width, self.bottleneck) # downsampling layer
@@ -95,8 +101,6 @@ class DTNet1D(nn.Module):
         self.recur_block = nn.Sequential(*recur_layers)
         self.head = nn.Sequential(head_linear, NewGELU())
 
-
-    @torch.no_grad()
     def positional_encoding(self, max_seq_len, d_model):
         '''
         Generates the positional encoding for the input sequence
@@ -114,7 +118,7 @@ class DTNet1D(nn.Module):
 
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
         # x -> (batch, 16)
-        x = self.embed_layer(x) #+ self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
+        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
         initial_thought = self.projection(x)
 
         if interim_thought is None:
@@ -139,16 +143,16 @@ class DTNet1D(nn.Module):
 
 
 def dt_net_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 4, width, recall=False)
+    return DTNet1D(BasicBlock, 6, width, recall=False)
 
 
 def dt_net_recall_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 4, width, recall=True)
+    return DTNet1D(BasicBlock, 6, width, recall=True)
 
 
 def dt_net_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 4, width, recall=False, group_norm=True)
+    return DTNet1D(BasicBlock, 6, width, recall=False, group_norm=True)
 
 
 def dt_net_recall_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 4, width, recall=True, group_norm=True)
+    return DTNet1D(BasicBlock, 6, width, recall=True, group_norm=True)

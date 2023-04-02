@@ -45,7 +45,7 @@ def main(cfg: DictConfig):
     dic_cfg = OmegaConf.to_container(cfg, resolve=True)
 
     wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
-               magic=True, sync_tensorboard=False, group='Add_experiments')
+               magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
 
     wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
 

@@ -23,14 +23,14 @@ class ArithmeticDataset(Dataset):
     self.pad_token = 11
 
     if self.mode == 'train':
-      self.upper_b = 6 #Bounding digits for different splits of the dataset
+      self.upper_b = 25 #Bounding digits for different splits of the dataset
       self.lower_b = 1
     elif self.mode == 'val':
-      self.upper_b = 7
-      self.lower_b = 6
+      self.upper_b = 29
+      self.lower_b = 26
     else:
-      self.upper_b = 7
-      self.lower_b = 6
+      self.upper_b = 31
+      self.lower_b = 30
 
   def __len__(self):
     return self.samples
@@ -104,12 +104,12 @@ class ArithmeticDataset(Dataset):
     assert input.shape[0] == output.shape[0], f'shapes are wrong: {input.shape} and {output.shape}'
     return torch.from_numpy(input), torch.from_numpy(output)
 
-def prepare_addition_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=True):
+def prepare_addition_loader(train_batch_size, test_batch_size, train_data, test_data, shuffle=False):
     # We ignore the train_data and test_data rather than removing for compatibility reasons
     
-    train_dataset = ArithmeticDataset(mode='train', samples=50_000, seqlen=16, bits=6)
-    val_dataset = ArithmeticDataset(mode='val', samples=50_000, seqlen=16, bits=6)
-    test_dataset = ArithmeticDataset(mode='test', samples=5_000, seqlen=16, bits=6)
+    train_dataset = ArithmeticDataset(mode='train', samples=50_000, seqlen=64, bits=6)
+    val_dataset = ArithmeticDataset(mode='val', samples=50_000, seqlen=64, bits=6)
+    test_dataset = ArithmeticDataset(mode='test', samples=5_000, seqlen=64, bits=6)
 
     trainloader = DataLoader(train_dataset,
                              num_workers=2,
@@ -117,7 +117,7 @@ def prepare_addition_loader(train_batch_size, test_batch_size, train_data, test_
                              shuffle=shuffle,
                              drop_last=True,
                              pin_memory=True,
-                             prefetch_factor=2)
+                             prefetch_factor=8)
 
     valloader = DataLoader(val_dataset,
                              num_workers=2,
