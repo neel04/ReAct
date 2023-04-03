@@ -9,7 +9,6 @@
     October 2021
 """
 import wandb
-wandb.login(host='https://stability.wandb.io', relogin=True, key="local-6cd1ebf260e154dcd6af9d7ccac6230f4f52e9e6")
 
 import json
 import logging
@@ -20,6 +19,7 @@ from collections import OrderedDict
 import hydra
 import numpy as np
 import torch
+from torch.nn.parallel import DistributedDataParallel as DDP
 from icecream import ic
 from omegaconf import DictConfig, OmegaConf
 
@@ -34,26 +34,50 @@ import deepthinking.utils.logging_utils as lg
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914, C0116, C0115
 # seed everything with torch
 
+def cleanup():
+    torch.distributed.destroy_process_group()
+
+class DummyWandb:
+    def __init__(self):
+        pass
+    def log(self, *args, **kwargs):
+        pass
+    def finish(self, *args, **kwargs):
+        pass
+    def save(self, *args, **kwargs):
+        pass
+
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    global wandb
+    wandb.login(host='https://stability.wandb.io', relogin=True, key="local-6cd1ebf260e154dcd6af9d7ccac6230f4f52e9e6")
     torch.backends.cudnn.benchmark = True
+
     log = logging.getLogger()
     log.info("\n_________________________________________________\n")
     log.info("train_model.py main() running.")
     log.info(OmegaConf.to_yaml(cfg))
     dic_cfg = OmegaConf.to_container(cfg, resolve=True)
-
-    wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
-               magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
-
-    wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
-
-    # write config YAML file to /tmp
-    with open("/tmp/my_config.yaml", "w") as f:
-        f.write(OmegaConf.to_yaml(cfg))
     
-    wandb.save("/tmp/my_config.yaml") # save config file to wandb, so we can download it later
+    # ---- Distributed Data Parallel ----
+    torch.distributed.init_process_group(backend="nccl")
+    rank = torch.distributed.get_rank()
+    device_id = rank % torch.cuda.device_count()
+
+    if rank == 0:
+        wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
+                magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
+        
+        wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
+
+        # write config YAML file to /tmp
+        with open("/tmp/my_config.yaml", "w") as f:
+            f.write(OmegaConf.to_yaml(cfg))
+        
+        wandb.save("/tmp/my_config.yaml") # save config file to wandb, so we can download it later
+    else:
+        # create a dummy wandb object so that we can call wandb.log() without checking if rank == 0
+        wandb = DummyWandb()
 
     #cfg.problem.model.test_iterations = list(range(cfg.problem.model.test_iterations["low"],
     #                                               cfg.problem.model.test_iterations["high"] + 1))
@@ -68,9 +92,9 @@ def main(cfg: DictConfig):
 
     net, start_epoch, optimizer_state_dict, scaler_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
                                                                                  cfg.problem.model,
-                                                                                 device)
+                                                                                 device_id)
     # JIT
-    net = torch.compile(net)
+    net = DDP(net, device_ids=[device_id], gradient_as_bucket_view=True, find_unused_parameters=True)
 
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
@@ -95,9 +119,9 @@ def main(cfg: DictConfig):
     best_so_far = False
 
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, scaler_dict=scaler_dict)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device_id, scaler_dict=scaler_dict)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
-                          cfg.problem.name, device, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
+                          cfg.problem.name, device_id, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -127,7 +151,7 @@ def main(cfg: DictConfig):
                                                    cfg.problem.hyp.test_mode,
                                                    cfg.problem.model.test_iterations,
                                                    cfg.problem.name,
-                                                   device)
+                                                   device_id)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")

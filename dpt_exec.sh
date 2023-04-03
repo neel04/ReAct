@@ -20,8 +20,13 @@
 export WANDB_API_KEY=618e11c734b0f6069af4735cde3d3d515930d678
 # Stability.ai API key
 export WANDB_API_KEY=local-6cd1ebf260e154dcd6af9d7ccac6230f4f52e9e6
+export MASTER_PORT=29450
+# obtain the IP address of the master node
+export MASTER_ADDR=$(hostname -i)
 
 export PYTHONBREAKPOINT="web_pdb.set_trace"
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
+export OMP_NUM_THREADS=2
 
 cd /fsx/awesome
 echo "Starting training" 

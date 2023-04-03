@@ -27,8 +27,6 @@ from .flash_mha import FlashMultiHeadAttention
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
 #     Not callable (E1102), Invalid name (C0103), No exception (W0702)
 # pylint: disable=R0912, R0915, E1101, E1102, C0103, W0702, R0914
-
-
 class NewGELU(nn.Module):
     def forward(self, x):
         return 0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * torch.pow(x, 3.0))))
@@ -62,14 +60,6 @@ class AttentionBlock1D(nn.Module):
 
         return self.activation(x)
 
-class AttentionModule(nn.Module):
-    def __init__(self, attn_head):
-        super().__init__()
-        self.attn_head = attn_head
-
-    def forward(self, x):
-        return self.attn_head(x,x,x, need_weights=False)[0]
-
 class DTNet1D(nn.Module):
     """DeepThinking 1D Network model class"""
 
@@ -100,14 +90,15 @@ class DTNet1D(nn.Module):
         self.projection = nn.Sequential(proj_linear, NewGELU())
         self.recur_block = nn.Sequential(*recur_layers)
         self.head = nn.Sequential(head_linear, NewGELU())
-
-    def positional_encoding(self, max_seq_len, d_model):
+    
+    @torch.no_grad()
+    def positional_encoding(self, max_seq_len, d_model, device='cuda:0'):
         '''
         Generates the positional encoding for the input sequence
         of shape (batch_size, max_seq_len, d_model) which would be added
         to the sequence embeddings.
         '''
-        pe = torch.zeros(max_seq_len, d_model)
+        pe = torch.zeros(max_seq_len, d_model, device=device)
 
         for pos in range(max_seq_len):
             for i in range(0, d_model, 2):
@@ -118,14 +109,14 @@ class DTNet1D(nn.Module):
 
     def forward(self, x, iters_to_do, interim_thought=None, **kwargs):
         # x -> (batch, 16)
-        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck).to(x.device, non_blocking=True)
+        x = self.embed_layer(x) + self.positional_encoding(self.SEQLEN, self.bottleneck, device=x.device)
         initial_thought = self.projection(x)
 
         if interim_thought is None:
             interim_thought = initial_thought
 
         # X -> (32, 1, 96), 32 is batch_size/#GPUs
-        all_outputs = torch.zeros((x.size(0), iters_to_do, self.SEQLEN, 13)).to(x.device, non_blocking=True)
+        all_outputs = torch.zeros((x.size(0), iters_to_do, self.SEQLEN, 13), device=x.device)
 
         for i in range(iters_to_do):
             if self.recall:

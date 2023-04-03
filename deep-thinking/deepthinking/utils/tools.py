@@ -146,7 +146,7 @@ def load_model_from_checkpoint(problem, model_args, device):
     net = get_model(model, width, in_channels=in_channels, max_iters=max_iters)
     net = net.to(device)
     if device == "cuda":
-        net = torch.nn.DataParallel(net)
+        net = net
     
     if model_path is not None and os.path.exists(model_path):
         logging.info(f"\n{'$'*50}\nLoading model from checkpoint {model_path}...\n{'$'*50}")

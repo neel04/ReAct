@@ -1,5 +1,5 @@
-alpha: 0.5
-clip: 1
+alpha: 1
+clip: 2
 epochs: 400
 lr: 9e-5 # 5e-4 does get to 98% elemennwise accuracy in 100 epochs
 lr_decay: cosine
@@ -9,9 +9,9 @@ lr_schedule: #  CosineAnnealingLR Doesn't use this param
 lr_throttle: False
 optimizer: lion
 save_period: -1
-test_batch_size: 1280
+test_batch_size: 64
 test_mode: default
-train_batch_size: 1280
+train_batch_size: 64
 train_mode: progressive
 val_period: 20
-warmup_period: 8 # We use Cosine warmup for the first 5 epochs
+warmup_period: 8 # We use Cosine warmup for the first 5 epochs, low warmup for DDP

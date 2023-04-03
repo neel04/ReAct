@@ -8,8 +8,8 @@ train_data: 50_000
 
 model:
   model_path:
-  width: 512
-  max_iters: 10
+  width: 384
+  max_iters: 25
   test_iterations:
-    low: 10
-    high: 20
+    low: 25
+    high: 35

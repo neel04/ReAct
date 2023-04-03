@@ -55,6 +55,7 @@ def train(net, loaders, mode, train_setup, device, scaler_dict=None):
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler
 
 def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
+    torch.backends.cudnn.benchmark = True # GPUs go brr
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
@@ -83,7 +84,7 @@ def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
     print(f"Scaled: {scaler.is_enabled()} | scaler: {scaler}")
 
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
-        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+        with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
             with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_mem_efficient=True, enable_math=True):
                 inputs, targets = inputs.to(device).int(), targets.to(device).long()
                 
@@ -132,10 +133,11 @@ def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
             
             scaler.step(optimizer)
             scaler.update()
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
-        predicted = get_predicted(inputs, outputs_max_iters, problem)
+        dim = 2 if alpha == 1 else 1
+        predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
