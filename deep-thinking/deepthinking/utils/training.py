@@ -47,14 +47,14 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     return outputs, k
 
 
-def train(net, loaders, mode, train_setup, device, scaler_dict=None):
+def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = train_progressive(net, loaders, train_setup, device, scaler_dict)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = train_progressive(net, loaders, train_setup, device, acc_obj)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler
 
-def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
+def train_progressive(net, loaders, train_setup, device, acc_obj):
     torch.backends.cudnn.benchmark = True # GPUs go brr
     trainloader = loaders["train"]
     net.train()
@@ -78,62 +78,57 @@ def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
     correct = 0
     total = 0
     train_metric, train_elem_acc, train_seq_acc = [], [], []
-
-    scaler = torch.cuda.amp.GradScaler()
-    scaler.load_state_dict(scaler_dict) if scaler_dict is not None else scaler
-    print(f"Scaled: {scaler.is_enabled()} | scaler: {scaler}")
+    
+    accelerator = acc_obj # Using passed accelerator object
 
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
-        with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
-            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_mem_efficient=True, enable_math=True):
-                inputs, targets = inputs.to(device).int(), targets.to(device).long()
-                
-                targets = targets.view(targets.size(0), -1)
-                if problem == "mazes":
-                    mask = inputs.view(inputs.size(0), inputs.size(1), -1).max(dim=1)[0] > 0
-
-                # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
-                # so we save time by settign it equal to 0).
-                outputs_max_iters, _ = net(inputs, iters_to_do=max_iters)
-                if alpha != 1:
-                    outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
-                                                            outputs_max_iters.size(1), -1).transpose(1, 2)
-                    loss_max_iters = criterion(outputs_max_iters, targets)
-                else:
-                    loss_max_iters = torch.zeros_like(targets).float()
-
-                # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
-                # so we save time by setting it equal to 0).
-                if alpha != 0:
-                    outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-                    outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
-                    loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
-                else:
-                    loss_progressive = torch.zeros_like(targets).float()
-
-                if problem == "mazes":
-                    loss_max_iters = (loss_max_iters * mask)
-                    loss_max_iters = loss_max_iters[mask > 0]
-                    loss_progressive = (loss_progressive * mask)
-                    loss_progressive = loss_progressive[mask > 0]
-
-                loss_max_iters_mean = loss_max_iters.mean()
-                loss_progressive_mean = loss_progressive.mean()
-
-                loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
-                loss = loss / accum_iters # accumulate gradients
-
-        scaler.scale(loss).backward()
-
-        if (batch_idx + 1) % accum_iters == 0:
-            scaler.unscale_(optimizer) # unscale the gradients for clipping
-
-            if clip is not None:
-                torch.nn.utils.clip_grad_norm_(net.parameters(), clip)
+        with accelerator.accumulate(net):
+            inputs, targets = inputs.int(), targets.long()
             
-            scaler.step(optimizer)
-            scaler.update()
-            optimizer.zero_grad(set_to_none=True)
+            targets = targets.view(targets.size(0), -1)
+            if problem == "mazes":
+                mask = inputs.view(inputs.size(0), inputs.size(1), -1).max(dim=1)[0] > 0
+            
+            # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
+            # so we save time by settign it equal to 0).
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_mem_efficient=True, enable_math=True):
+                outputs_max_iters, _ = net(inputs, iters_to_do=max_iters)
+
+            if alpha != 1:
+                outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
+                                                        outputs_max_iters.size(1), -1).transpose(1, 2)
+                with accelerator.autocast():
+                    loss_max_iters = criterion(outputs_max_iters, targets)
+            else:
+                loss_max_iters = torch.zeros_like(targets).float()
+            # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
+            # so we save time by setting it equal to 0).
+            if alpha != 0:
+                outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
+                
+                with accelerator.autocast():
+                    loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
+            else:
+                loss_progressive = torch.zeros_like(targets).float()
+            if problem == "mazes":
+                loss_max_iters = (loss_max_iters * mask)
+                loss_max_iters = loss_max_iters[mask > 0]
+                loss_progressive = (loss_progressive * mask)
+                loss_progressive = loss_progressive[mask > 0]
+
+            loss_max_iters_mean = loss_max_iters.mean()
+            loss_progressive_mean = loss_progressive.mean()
+            loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
+            loss = loss / accum_iters # accumulate gradients
+        
+        accelerator.backward(loss)
+
+        if clip is not None:
+            accelerator.clip_grad_norm_(net.parameters(), clip)
+            
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
         dim = 2 if alpha == 1 else 1
@@ -160,5 +155,5 @@ def train_progressive(net, loaders, train_setup, device, scaler_dict=None):
     warmup_scheduler.dampen()
 
     return (train_loss, acc, sum(train_metric)/len(train_metric), 
-            sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc), scaler)
+            sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc))
     # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, and the scaler object
