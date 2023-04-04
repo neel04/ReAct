@@ -23,6 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from icecream import ic
 from omegaconf import DictConfig, OmegaConf
 from accelerate import Accelerator
+from accelerate.utils import DistributedDataParallelKwargs
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
@@ -61,7 +62,8 @@ def main(cfg: DictConfig):
     dic_cfg = OmegaConf.to_container(cfg, resolve=True)
     
     # ---- Distributed Data Parallel ----
-    accelerator = Accelerator(gradient_accumulation_steps=1, project_dir='/fsx/awesome/DPT/outputs/')
+    ddp_scaler = DistributedDataParallelKwargs(find_unused_parameters=True)
+    accelerator = Accelerator(gradient_accumulation_steps=1, project_dir='/fsx/awesome/DPT/outputs/', kwargs_handlers=[ddp_scaler])
     device = accelerator.device
 
     if accelerator.is_main_process and 0 == 1:
