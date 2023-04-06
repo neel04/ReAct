@@ -8,5 +8,3 @@ main_training_function: main
 mixed_precision: 'bf16'
 num_machines: 1
 num_processes: 8
-tpu_use_cluster: false
-tpu_use_sudo: false
