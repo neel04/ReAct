@@ -63,7 +63,7 @@ def main(cfg: DictConfig):
     
     # ---- Distributed Data Parallel ----
     ddp_scaler = DistributedDataParallelKwargs(find_unused_parameters=True)
-    accelerator = Accelerator(gradient_accumulation_steps=1, project_dir='/fsx/awesome/DPT/outputs/', kwargs_handlers=[ddp_scaler])
+    accelerator = Accelerator(gradient_accumulation_steps=1, kwargs_handlers=[ddp_scaler])
     device = accelerator.device
 
     if accelerator.is_main_process and 0 == 1:
