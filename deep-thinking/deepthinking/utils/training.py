@@ -91,7 +91,7 @@ def train_progressive(net, loaders, train_setup, device, acc_obj):
             
             # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
             # so we save time by settign it equal to 0).
-            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_mem_efficient=True, enable_math=True):
+            with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=True):
                 outputs_max_iters, _ = net(inputs, iters_to_do=max_iters)
 
             if alpha != 1:
