@@ -49,7 +49,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
-        loss, acc, train_mae, train_elem_acc, train_seq_acc = train_progressive(net, loaders, train_setup, device, acc_obj)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = train_progressive(net, loaders, train_setup, device, acc_obj)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return loss, acc, train_mae, train_elem_acc, train_seq_acc
@@ -155,5 +155,5 @@ def train_progressive(net, loaders, train_setup, device, acc_obj):
     warmup_scheduler.dampen()
 
     return (train_loss, acc, sum(train_metric)/len(train_metric), 
-            sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc))
+            sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc)), accelerator
     # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy

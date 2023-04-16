@@ -66,7 +66,7 @@ def main(cfg: DictConfig):
     accelerator = Accelerator(gradient_accumulation_steps=1, kwargs_handlers=[ddp_scaler])
     device = accelerator.device
 
-    if accelerator.is_main_process and 0 == 1:
+    if accelerator.is_main_process:
         wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
                 magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
         
