@@ -52,9 +52,9 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = train_progressive(net, loaders, train_setup, device, acc_obj)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
-    return loss, acc, train_mae, train_elem_acc, train_seq_acc
+    return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator
 
-def train_progressive(net, loaders, train_setup, device, acc_obj):
+def train_progressive(net, loaders, train_setup, device, accelerator=None):
     torch.backends.cudnn.benchmark = True # GPUs go brr
     trainloader = loaders["train"]
     net.train()
@@ -79,8 +79,6 @@ def train_progressive(net, loaders, train_setup, device, acc_obj):
     total = 0
     train_metric, train_elem_acc, train_seq_acc = [], [], []
     
-    accelerator = acc_obj # Using passed accelerator object
-
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
         with accelerator.accumulate(net):
             inputs, targets = inputs.int(), targets.long()
@@ -155,4 +153,4 @@ def train_progressive(net, loaders, train_setup, device, acc_obj):
     warmup_scheduler.dampen()
 
     return train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc), accelerator
-    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy
+    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, accelerator
