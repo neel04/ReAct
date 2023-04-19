@@ -138,3 +138,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 .devcontainer
+.vscode
+.vscode/*
+.vscode/settings.json
+*.vscode
