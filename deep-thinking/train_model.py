@@ -124,8 +124,18 @@ def main(cfg: DictConfig):
     log.info(f"==> Starting training for {max(cfg.problem.hyp.epochs - start_epoch, 0)} epochs...")
     highest_val_acc_so_far = -1
     best_so_far = False
+    train_elem_acc = 0
+
+    # Curriculum learning
+    trainloader = loaders["train"]
+    og_delta_bound = trainloader.dataset.upper_b - trainloader.dataset.lower_b
 
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
+        # update upper bound for curriculum learning
+        if train_elem_acc > (0.9 + epoch * (0.08 / cfg.problem.hyp.epochs)): # SLOWLY increase threshold accuracy to enter next curriculum
+            trainloader.dataset.upper_b += 1
+            print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
+
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
