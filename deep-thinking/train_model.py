@@ -128,11 +128,12 @@ def main(cfg: DictConfig):
 
     # Curriculum learning
     trainloader = loaders["train"]
-    og_delta_bound = trainloader.dataset.upper_b - trainloader.dataset.lower_b
+    tgt_upper_b = trainloader.dataset.upper_b # target upper bound, i.e. the upper bound we want to reach eventually
+    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
 
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
-        if train_elem_acc > (0.9 + epoch * (0.08 / cfg.problem.hyp.epochs)): # SLOWLY increase threshold accuracy to enter next curriculum
+        if train_elem_acc > (0.94 + epoch * (0.04 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
             trainloader.dataset.upper_b += 1
             print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
 
