@@ -133,7 +133,7 @@ def main(cfg: DictConfig):
 
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
-        if train_elem_acc > (0.98 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
+        if train_elem_acc > (0.985 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
             trainloader.dataset.upper_b += 1
             print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
 
