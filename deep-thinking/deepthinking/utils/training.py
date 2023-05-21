@@ -56,6 +56,7 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
 
 def train_progressive(net, loaders, train_setup, device, accelerator=None):
     torch.backends.cudnn.benchmark = True # GPUs go brr
+    torch.manual_seed(420)
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
