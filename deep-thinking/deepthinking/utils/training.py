@@ -52,9 +52,6 @@ def init_weights(m):
         torch.nn.init.kaiming_normal_(m.weight)
         m.bias.data.fill_(0.01) if m.bias is not None else None
 
-    elif type(m) == torch.nn.Embedding:
-        torch.nn.init.xavier_uniform_(m.weight)
-
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     net.apply(init_weights) # Apply weights initialization
 
