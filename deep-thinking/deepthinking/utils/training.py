@@ -49,7 +49,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 def init_weights(m):
     # Apply Xavier uniform to linear, conv, with special case for  embedding layers
     if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
-        torch.nn.init.xavier_uniform_(m.weight)
+        torch.nn.init.kaiming_normal_(m.weight)
         m.bias.data.fill_(0.01) if m.bias is not None else None
 
     elif type(m) == torch.nn.Embedding:
