@@ -49,11 +49,11 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 def init_weights(m):
     # Apply Xavier uniform to linear, conv, with special case for  embedding layers
     if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
-        torch.nn.init.kaiming_normal_(m.weight)
+        torch.nn.init.orthogonal_(m.weight)
         m.bias.data.fill_(0.01) if m.bias is not None else None
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
-    #net.apply(init_weights) # Apply weights initialization
+    net.apply(init_weights) # Apply weights initialization
 
     if mode == "progressive":
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = train_progressive(net, loaders, train_setup, device, acc_obj)
