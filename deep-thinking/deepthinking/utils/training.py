@@ -53,7 +53,7 @@ def init_weights(m):
         m.bias.data.fill_(0.01) if m.bias is not None else None
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
-    net.apply(init_weights) # Apply weights initialization
+    #net.apply(init_weights) # Apply weights initialization
 
     if mode == "progressive":
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = train_progressive(net, loaders, train_setup, device, acc_obj)
