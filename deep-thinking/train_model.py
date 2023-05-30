@@ -49,6 +49,15 @@ class DummyWandb:
     def save(self, *args, **kwargs):
         pass
 
+def init_weights(m):
+    # Apply Xavier uniform to linear, conv, with special case for  embedding layers
+    if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
+        torch.nn.init.orthogonal_(m.weight)
+        m.bias.data.fill_(0.01) if m.bias is not None else None
+
+    elif type(m) == torch.nn.Embedding:
+        torch.nn.init.orthogonal_(m.weight)
+
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     global wandb
@@ -131,6 +140,9 @@ def main(cfg: DictConfig):
     tgt_upper_b = trainloader.dataset.upper_b # target upper bound, i.e. the upper bound we want to reach eventually
     trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
 
+    # Setting network weights initialization
+    net.apply(init_weights)
+    
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
         if train_elem_acc > (0.98 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
