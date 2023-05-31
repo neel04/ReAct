@@ -223,6 +223,11 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    # Setting the seed first for reproducibility
+    torch.manual_seed(420)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
     run_id = dt.utils.generate_run_id()
     sys.argv.append(f"+run_id={run_id}")
     main()

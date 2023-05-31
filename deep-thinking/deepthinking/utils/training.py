@@ -56,7 +56,8 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
 def train_progressive(net, loaders, train_setup, device, accelerator=None):
     torch.manual_seed(420)
     torch.backends.cudnn.deterministic = True
-
+    torch.backends.cudnn.benchmark = False
+    
     trainloader = loaders["train"]
     net.train()
     optimizer = train_setup.optimizer
