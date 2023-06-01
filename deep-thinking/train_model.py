@@ -50,13 +50,10 @@ class DummyWandb:
         pass
 
 def init_weights(m):
-    # Apply Xavier uniform to linear, conv, with special case for  embedding layers
+    # Apply to linear, conv, with special case for embedding layers
     if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
         torch.nn.init.orthogonal_(m.weight)
         m.bias.data.fill_(0.01) if m.bias is not None else None
-
-    elif type(m) == torch.nn.Embedding:
-        torch.nn.init.orthogonal_(m.weight)
 
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
