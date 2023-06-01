@@ -221,7 +221,7 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     # Setting the seed first for reproducibility
-    torch.manual_seed(69)
+    torch.manual_seed(69420)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
