@@ -138,7 +138,7 @@ def main(cfg: DictConfig):
     trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
 
     # Setting network weights initialization
-    net.apply(init_weights)
+    #net.apply(init_weights)
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
