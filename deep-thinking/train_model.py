@@ -52,7 +52,7 @@ class DummyWandb:
 def init_weights(m):
     # Apply to linear, conv, with special case for embedding layers
     if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
-        torch.nn.init.orthogonal_(m.weight)
+        torch.nn.init.eye_(m.weight)
         m.bias.data.fill_(0.01) if m.bias is not None else None
 
 @hydra.main(config_path="config", config_name="train_model_config")
@@ -138,7 +138,7 @@ def main(cfg: DictConfig):
     trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
 
     # Setting network weights initialization
-    #net.apply(init_weights)
+    net.apply(init_weights)
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
