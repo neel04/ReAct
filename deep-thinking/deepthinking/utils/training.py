@@ -54,7 +54,6 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator
 
 def train_progressive(net, loaders, train_setup, device, accelerator=None):
-    torch.manual_seed(30847)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
