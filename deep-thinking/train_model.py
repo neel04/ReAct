@@ -220,6 +220,7 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     SEED = torch.randint(0, 2**60, (1,), dtype=torch.int64).item()
+    SEED = 1152288624238028155
     print(f'Using seed: {SEED}')
     torch.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True
