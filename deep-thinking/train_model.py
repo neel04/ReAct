@@ -22,6 +22,8 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from icecream import ic
 from omegaconf import DictConfig, OmegaConf
+from accelerate import Accelerator
+from accelerate.utils import DistributedDataParallelKwargs
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
@@ -47,6 +49,11 @@ class DummyWandb:
     def save(self, *args, **kwargs):
         pass
 
+def init_weights(m):
+    if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
+        #torch.nn.init.eye_(m.weight)
+        m.bias.data.fill_(0.01) if m.bias is not None else None
+
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     global wandb
@@ -60,11 +67,11 @@ def main(cfg: DictConfig):
     dic_cfg = OmegaConf.to_container(cfg, resolve=True)
     
     # ---- Distributed Data Parallel ----
-    torch.distributed.init_process_group(backend="nccl")
-    rank = torch.distributed.get_rank()
-    device_id = rank % torch.cuda.device_count()
+    ddp_scaler = DistributedDataParallelKwargs(find_unused_parameters=True)
+    accelerator = Accelerator(gradient_accumulation_steps=1, kwargs_handlers=[ddp_scaler])
+    device = accelerator.device
 
-    if rank == 0:
+    if accelerator.is_main_process:
         wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
                 magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
         
@@ -90,12 +97,10 @@ def main(cfg: DictConfig):
     #               Dataset and Network and Optimizer
     loaders = dt.utils.get_dataloaders(cfg.problem)
 
-    net, start_epoch, optimizer_state_dict, scaler_dict = dt.utils.load_model_from_checkpoint(cfg.problem.name,
+    net, start_epoch, optimizer_state_dict, accelerator = dt.utils.load_model_from_checkpoint(cfg.problem.name,
                                                                                  cfg.problem.model,
-                                                                                 device_id)
-    # JIT
-    net = DDP(net, device_ids=[device_id], gradient_as_bucket_view=True, find_unused_parameters=True)
-
+                                                                                 device,
+                                                                                 accelerator)
     pytorch_total_params = sum(p.numel() for p in net.parameters())
     log.info(f"This {cfg.problem.model.model} has {pytorch_total_params/1e6:0.3f} million parameters.")
     log.info(f"Training will start at epoch {start_epoch}.")
@@ -103,6 +108,9 @@ def main(cfg: DictConfig):
                                                                        cfg.problem.model,
                                                                        net,
                                                                        optimizer_state_dict)
+    # preparing for acceleration
+    net, optimizer, loaders["train"], loaders["val"], lr_scheduler = accelerator.prepare(net, optimizer, loaders["train"], loaders["val"], lr_scheduler)
+
     train_setup = dt.TrainingSetup(optimizer=optimizer,
                                    scheduler=lr_scheduler,
                                    warmup=warmup_scheduler,
@@ -111,17 +119,35 @@ def main(cfg: DictConfig):
                                    max_iters=cfg.problem.model.max_iters,
                                    problem=cfg.problem.name)
     ####################################################
+    # Register the LR scheduler for checkpointing
+    accelerator.register_for_checkpointing(lr_scheduler)
+    accelerator.register_for_checkpointing(optimizer)
+    accelerator.register_for_checkpointing(net)
 
     ####################################################
     #        Train
     log.info(f"==> Starting training for {max(cfg.problem.hyp.epochs - start_epoch, 0)} epochs...")
     highest_val_acc_so_far = -1
     best_so_far = False
+    train_elem_acc = 0
 
+    # Curriculum learning
+    trainloader = loaders["train"]
+    tgt_upper_b = trainloader.dataset.upper_b # target upper bound, i.e. the upper bound we want to reach eventually
+    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
+
+    # Setting network weights initialization
+    net.apply(init_weights)
+    
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, scaler = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device_id, scaler_dict=scaler_dict)
+        # update upper bound for curriculum learning
+        if train_elem_acc > (0.98 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
+            trainloader.dataset.upper_b += 1
+            print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
+
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
-                          cfg.problem.name, device_id, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
+                          cfg.problem.name, device, extra_metrics=True)[0] #TODO: [0][cfg.problem.model.max_iters]
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -151,7 +177,7 @@ def main(cfg: DictConfig):
                                                    cfg.problem.hyp.test_mode,
                                                    cfg.problem.model.test_iterations,
                                                    cfg.problem.name,
-                                                   device_id)
+                                                   device)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")
@@ -165,11 +191,13 @@ def main(cfg: DictConfig):
         save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or \
                    (epoch + 1) == cfg.problem.hyp.epochs or best_so_far
         if save_now:
-            state = {"net": net.state_dict(), "epoch": epoch, "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict()}
+            accelerator.wait_for_everyone()
+            accelerator.save(epoch, "/fsx/awesome/DPT/outputs/epoch.pkl")
+
             out_str = f"model_{'best' if best_so_far else ''}.pth"
             best_so_far = False
             log.info(f"Saving model to: {out_str}")
-            torch.save(state, out_str)
+            accelerator.save_state(output_dir=f"/fsx/awesome/DPT/outputs/{out_str}")
             wandb.save(out_str)
 
     # save some accuracy stats (can be used without testing to discern which models trained)
@@ -191,6 +219,13 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    SEED = torch.randint(0, 2**60, (1,), dtype=torch.int64).item()
+    SEED = 1152288624238028155
+    print(f'Using seed: {SEED}')
+    torch.manual_seed(SEED)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
     run_id = dt.utils.generate_run_id()
     sys.argv.append(f"+run_id={run_id}")
     main()

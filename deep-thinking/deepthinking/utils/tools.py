@@ -11,7 +11,6 @@
 import os
 import logging
 import random
-import web_pdb as pdb
 from datetime import datetime
 
 import torch
@@ -128,7 +127,7 @@ def get_optimizer(optim_args, model_args, net, state_dict):
     return optimizer, warmup_scheduler, lr_scheduler
 
 
-def load_model_from_checkpoint(problem, model_args, device):
+def load_model_from_checkpoint(problem, model_args, device, accelerator):
     model = model_args.model
     model_path = model_args.model_path
     width = model_args.width
@@ -165,10 +164,9 @@ def load_model_from_checkpoint(problem, model_args, device):
         net.load_state_dict(new_state_dict["net"])
         epoch = new_state_dict["epoch"] + 1
         optimizer = new_state_dict["optimizer"]
+        accelerator.load_state(f"/fsx/DPT/outputs/{model_path}")
 
-    # load AMP scaler
-    scaler = new_state_dict["scaler"] if "scaler" in new_state_dict.keys() else None
-    return net, epoch, optimizer, scaler
+    return net, epoch, optimizer, accelerator
 
 
 def now():

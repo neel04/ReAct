@@ -140,4 +140,3 @@ def prepare_addition_loader(train_batch_size, test_batch_size, train_data, test_
     loaders = {"train": trainloader, "test": testloader, "val": valloader}
 
     return loaders
-    print(f'\nAddition dataloaders have been succesfully created!')

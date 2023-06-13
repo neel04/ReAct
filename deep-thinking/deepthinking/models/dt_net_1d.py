@@ -134,16 +134,16 @@ class DTNet1D(nn.Module):
 
 
 def dt_net_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=False)
+    return DTNet1D(BasicBlock, 4, width, recall=False)
 
 
 def dt_net_recall_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=True)
+    return DTNet1D(BasicBlock, 4, width, recall=True)
 
 
 def dt_net_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=False, group_norm=True)
+    return DTNet1D(BasicBlock, 4, width, recall=False, group_norm=True)
 
 
 def dt_net_recall_gn_1d(width, **kwargs):
-    return DTNet1D(BasicBlock, 6, width, recall=True, group_norm=True)
+    return DTNet1D(BasicBlock, 4, width, recall=True, group_norm=True)
