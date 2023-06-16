@@ -146,7 +146,7 @@ def main(cfg: DictConfig):
             trainloader.dataset.upper_b += 1
             print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
             
-            i,o = iter(trainloader).next()[0] # get a random sample
+            i,o = next(iter(trainloader))[0] # get a random sample
             print(f'\nBound Sample: {i[0]} | {o[0]}')
 
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
