@@ -141,9 +141,13 @@ def main(cfg: DictConfig):
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
+
         if train_elem_acc > (0.98 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
             trainloader.dataset.upper_b += 1
             print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
+            
+            i,o = iter(trainloader).next()[0] # get a random sample
+            print(f'\nBound Sample: {i[0]} | {o[0]}')
 
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
