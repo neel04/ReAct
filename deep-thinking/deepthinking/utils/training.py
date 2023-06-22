@@ -142,8 +142,8 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
 
         correct += torch.eq(targets, predicted).all().item()
         total += targets.size(0)
-
-    print(f'\nSample pred: {predicted[0]} | Sample answer: {targets[0]}')
+    
+    print(f'\nSample pred: {trainloader.dataset.decode(predicted[0])} | Sample answer: {trainloader.dataset.decode(targets[0])}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")
     print(f"\nTrain elementwise accuracy: {(sum(train_elem_acc)/len(train_elem_acc)) * 100}%\n")
     print(f"\nTrain sequence accuracy: {(sum(train_seq_acc)/len(train_seq_acc)) * 100}%\n")
