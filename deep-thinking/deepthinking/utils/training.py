@@ -68,11 +68,10 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     problem = train_setup.problem
     clip = train_setup.clip
 
-    #criterion = lambda x, y: torch.nn.MSELoss(reduction='none')(x, y) * 5 # alpha = 5
     #TODO: Use weights
-    weights = torch.ones(13).to(device)
-    weights[11] = 0.2
-    criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weights)
+    #weights = torch.ones(40).to(device)
+    #weights[35] = 0.2
+    criterion = torch.nn.CrossEntropyLoss(reduction='none')
     accum_iters = 1
 
     train_loss = 0
