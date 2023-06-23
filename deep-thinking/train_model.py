@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
     # Curriculum learning
     trainloader = loaders["train"]
     tgt_upper_b = trainloader.dataset.upper_b # target upper bound, i.e. the upper bound we want to reach eventually
-    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 3 # initialize upper bound to 3 more than lower bound
+    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 3 more than lower bound
 
     # Setting network weights initialization
     net.apply(init_weights)
