@@ -1,4 +1,4 @@
-FROM ghcr.io/pytorch/pytorch-nightly
+FROM nvcr.io/nvidia/pytorch:23.05-py3
 
 RUN apt-get -y update
 RUN apt-get -y install nano vim libfreetype6-dev git gcc build-essential
