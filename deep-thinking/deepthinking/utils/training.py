@@ -102,10 +102,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # so we save time by setting it equal to 0).
             if alpha != 0:
                 outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-                print(f"prog loss: {outputs.shape}")
-                outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
-                print(f'outputs view shape: {outputs.shape}')
-                print(f'outputs shape: {outputs.shape} | targets shape: {targets.shape}')
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
                 with accelerator.autocast():
                     loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
             else:
