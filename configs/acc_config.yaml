@@ -1,11 +1,6 @@
 compute_environment: LOCAL_MACHINE
 distributed_type: MULTI_GPU
 downcast_bf16: 'no'
-dynamo_config:
-  dynamo_backend: INDUCTOR
-  dynamo_mode: reduce-overhead
-  dynamo_use_dynamic: true
-  dynamo_use_fullgraph: true
 gpu_ids: all
 machine_rank: 0
 main_training_function: main
