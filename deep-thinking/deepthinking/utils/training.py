@@ -131,6 +131,9 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         train_loss += loss.item()
         dim = 2 if alpha == 1 else 1
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
+        predicted = predicted.argmax(dim=1) if predicted.ndim != targets.ndim else predicted # decode if required for MLM
+
+        # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
