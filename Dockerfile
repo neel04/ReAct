@@ -8,3 +8,7 @@ RUN pip3 install -U torchmetrics Pillow Image web-pdb accelerate rotary_embeddin
 RUN pip3 install einops hydra-core omegaconf tensorboard tensorboard-plugin-wit
 RUN pip3 install torchvision tqdm comet-ml nbformat easy-to-hard-data jupyterlab
 RUN pip3 install icecream matplotlib numpy pandas Pillow scipy seaborn svglib
+
+# create jupyter_notebook_config.py
+RUN mkdir -p /root/.jupyter && \
+    echo "c.NotebookApp.contents_manager_class = 'notebook.services.contents.largefilemanager.LargeFileManager'" > /root/.jupyter/jupyter_notebook_config.py
