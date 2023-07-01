@@ -34,9 +34,9 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     return accs
 
 
-def get_predicted(inputs, outputs, problem, dim=-1):
+def get_predicted(inputs, outputs, problem, dim=0):
     outputs = outputs[:2]
-    print(f'raw outputs: {outputs}')
+    print(f'raw outputs: {outputs} | outputs shape {outputs.shape}')
     outputs = outputs.clone()
     predicted = outputs.argmax(dim)
     print(f'predicted + argmax: {predicted}')
