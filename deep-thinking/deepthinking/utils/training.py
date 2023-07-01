@@ -132,8 +132,6 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=1)
         predicted, targets = predicted[:2], targets[:2]
         print(f'preds: {predicted} | targets: {targets}')
-        predicted = predicted.argmax(dim=1) if predicted.ndim != targets.ndim else predicted # decode if required for MLM
-        print(f'ARGMAX preds: {predicted} | targets: {targets}')
 
         # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
