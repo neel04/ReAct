@@ -136,6 +136,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
         train_elem_acc.append(torch.eq(targets.detach(), predicted.detach()).sum().item() / targets.numel())
+        print(f'equal: {torch.eq(targets.detach(), predicted.detach()).sum().item()} | total: {targets.numel()}')
 
         # Compute sequence accuracy, i.e compare the entire sequence to the target
         train_seq_acc.append(torch.eq(targets.detach(), predicted.detach()).all().item())
