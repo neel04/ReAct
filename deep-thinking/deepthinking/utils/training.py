@@ -129,7 +129,6 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
-        dim = 2 if alpha == 1 else 1
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
         predicted, targets = predicted[:2], targets[:2]
         print(f'preds: {predicted} | targets: {targets}')

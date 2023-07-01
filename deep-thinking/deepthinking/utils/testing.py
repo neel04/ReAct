@@ -34,7 +34,7 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     return accs
 
 
-def get_predicted(inputs, outputs, problem, dim=0):
+def get_predicted(inputs, outputs, problem, dim=1):
     outputs = outputs[:2]
     print(f'raw outputs: {outputs} | outputs shape {outputs.shape}')
     outputs = outputs.clone()
@@ -42,7 +42,7 @@ def get_predicted(inputs, outputs, problem, dim=0):
     # print the argmax of the outputs for each dim in [-3,2], both inclusive
     for i in range(-3, 3):
         print(f'argmax dim {i}: {outputs.argmax(i)}')
-        
+
     predicted = predicted.view(predicted.size(0), -1)
     print(f'predicted + view: {predicted}')
     if problem == "mazes":
