@@ -131,7 +131,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         train_loss += loss.item()
         dim = 2 if alpha == 1 else 1
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
-        #predicted, targets = predicted[:2], targets[:2]
+        predicted, targets = predicted[:2], targets[:2]
         print(f'preds: {predicted} | targets: {targets}')
         predicted = predicted.argmax(dim=1) if predicted.ndim != targets.ndim else predicted # decode if required for MLM
         print(f'ARGMAX preds: {predicted} | targets: {targets}')
