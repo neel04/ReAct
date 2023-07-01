@@ -131,19 +131,26 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         train_loss += loss.item()
         dim = 2 if alpha == 1 else 1
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
+        predicted, targets = predicted[:2], targets[:2]
+        print(f'preds: {predicted} | targets: {targets}')
         predicted = predicted.argmax(dim=1) if predicted.ndim != targets.ndim else predicted # decode if required for MLM
+        print(f'ARGMAX preds: {predicted} | targets: {targets}')
 
         # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
+        print(f'train_metric: {train_metric}')
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
         train_elem_acc.append(torch.eq(targets.detach(), predicted.detach()).sum().item() / targets.numel())
+        print(f'train_elem_acc: {train_elem_acc}')
 
         # Compute sequence accuracy, i.e compare the entire sequence to the target
         train_seq_acc.append(torch.eq(targets.detach(), predicted.detach()).all().item())
+        print(f'train_seq_acc: {train_seq_acc}')
 
         correct += torch.eq(targets, predicted).all().item()
         total += targets.size(0)
+        print(f'correct: {correct} | total: {total}')
     
     print(f'\nSample pred: {trainloader.dataset.decode(predicted[0])} | Sample answer: {trainloader.dataset.decode(targets[0])}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")
