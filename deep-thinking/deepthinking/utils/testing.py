@@ -35,9 +35,12 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
 
 
 def get_predicted(inputs, outputs, problem, dim=1):
+    print(f'raw outputs: {outputs}')
     outputs = outputs.clone()
     predicted = outputs.argmax(dim)
+    print(f'predicted + argmax: {predicted}')
     predicted = predicted.view(predicted.size(0), -1)
+    print(f'predicted + view: {predicted}')
     if problem == "mazes":
         predicted = predicted * (inputs.max(1)[0].view(inputs.size(0), -1))
     elif problem == "chess":
