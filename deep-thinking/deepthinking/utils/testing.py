@@ -34,7 +34,7 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     return accs
 
 
-def get_predicted(inputs, outputs, problem, dim=3):
+def get_predicted(inputs, outputs, problem, dim=-1):
     outputs = outputs[:2]
     print(f'raw outputs: {outputs}')
     outputs = outputs.clone()
