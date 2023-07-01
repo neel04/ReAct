@@ -130,13 +130,13 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
 
         train_loss += loss.item()
         predicted = get_predicted(inputs, outputs_max_iters, problem, dim=1)
+        predicted, targets = predicted.squeeze(), targets.squeeze()
 
         # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
         train_elem_acc.append(torch.eq(targets.detach(), predicted.detach()).sum().item() / targets.numel())
-        print(f'equal: {torch.eq(targets.detach(), predicted.detach()).sum().item()} | total: {targets.numel()}')
 
         # Compute sequence accuracy, i.e compare the entire sequence to the target
         train_seq_acc.append(torch.eq(targets.detach(), predicted.detach()).all().item())
