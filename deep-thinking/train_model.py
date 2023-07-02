@@ -57,7 +57,7 @@ def init_weights(m):
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     global wandb
-    wandb.login(host='https://stability.wandb.io', relogin=True, key="local-6cd1ebf260e154dcd6af9d7ccac6230f4f52e9e6")
+    wandb.login(key="06af347f2f75679eaa6527711464b33792135f54")
     torch.backends.cudnn.benchmark = True
 
     log = logging.getLogger()
@@ -72,8 +72,8 @@ def main(cfg: DictConfig):
     device = accelerator.device
 
     if accelerator.is_main_process:
-        wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
-                magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
+        wandb.init(project="ReAct", id=run_id, config=dict(dic_cfg), 
+                magic=True, sync_tensorboard=False, group='Arithmetic_32')
         
         wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
 
