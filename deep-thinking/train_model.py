@@ -27,6 +27,7 @@ from accelerate.utils import DistributedDataParallelKwargs
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
+from deepthinking.utils.testing.debug_utils import DebugUnderflowOverflow
 
 
 # Ignore statements for pylint:
@@ -138,16 +139,17 @@ def main(cfg: DictConfig):
 
     # Setting network weights initialization
     net.apply(init_weights)
+    debug_overflow = DebugUnderflowOverflow(net) 
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
-        #if train_elem_acc > (0.99 + epoch * (0.003 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
-            #trainloader.dataset.upper_b += 1
-            #loaders["train"] = trainloader # ensure to overwrite the dataloader
-            #print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
+        if train_elem_acc > (0.99 + epoch * (0.003 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
+            trainloader.dataset.upper_b += 1
+            loaders["train"] = trainloader # ensure to overwrite the dataloader
+            print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
 
-            #i,o = next(iter(trainloader)) # get a random sample for sanity check
-            #print(f'\nBound Sample: {i[0]} | {o[0]}')
+            i,o = next(iter(trainloader)) # get a random sample for sanity check
+            print(f'\nBound Sample: {i[0]} | {o[0]}')
 
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],

@@ -80,6 +80,10 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
         with accelerator.accumulate(net):
+            # check inputs and targets if they're NaN
+            if torch.isnan(inputs).any() or torch.isnan(targets).any():
+                raise ValueError(f"\n{'!'*20}\n{ic.format()}: NaN detected in inputs or targets.")
+
             inputs, targets = inputs.int(), targets.long()
             
             targets = targets.view(targets.size(0), -1)
