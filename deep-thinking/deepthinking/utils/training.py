@@ -82,7 +82,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         with accelerator.accumulate(net):
             # check inputs and targets if they're NaN
             if torch.isnan(inputs).any() or torch.isnan(targets).any():
-                raise ValueError(f"\n{'!'*20}\n{ic.format()}: NaN detected in inputs or targets.")
+                raise ValueError(f"\n{'!'*20}\n{ic.format()}: NaN detected in inputs or targets. inputs: {inputs},\ntargets: {targets}\n{'!'*20}\n")
 
             inputs, targets = inputs.int(), targets.long()
             
