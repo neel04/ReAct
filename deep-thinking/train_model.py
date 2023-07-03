@@ -27,8 +27,7 @@ from accelerate.utils import DistributedDataParallelKwargs
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
-from deepthinking.utils.testing.debug_utils import DebugUnderflowOverflow
-
+from deepthinking.utils.debug_utils import DebugUnderflowOverflow
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
