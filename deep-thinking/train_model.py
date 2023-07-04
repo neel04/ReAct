@@ -27,7 +27,7 @@ from accelerate.utils import DistributedDataParallelKwargs
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
-
+from deepthinking.utils.debug_utils import DebugUnderflowOverflow
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -57,7 +57,7 @@ def init_weights(m):
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     global wandb
-    wandb.login(host='https://stability.wandb.io', relogin=True, key="local-6cd1ebf260e154dcd6af9d7ccac6230f4f52e9e6")
+    wandb.login(key="06af347f2f75679eaa6527711464b33792135f54")
     torch.backends.cudnn.benchmark = True
 
     log = logging.getLogger()
@@ -72,8 +72,8 @@ def main(cfg: DictConfig):
     device = accelerator.device
 
     if accelerator.is_main_process:
-        wandb.init(project="deep_thinking", entity="stability_neel", id=run_id, config=dict(dic_cfg), 
-                magic=True, sync_tensorboard=False, group='Arithmetic_64_ctx')
+        wandb.init(project="ReAct", id=run_id, config=dict(dic_cfg), 
+                magic=True, sync_tensorboard=False, group='Arithmetic_32')
         
         wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
 
@@ -134,16 +134,21 @@ def main(cfg: DictConfig):
     # Curriculum learning
     trainloader = loaders["train"]
     tgt_upper_b = trainloader.dataset.upper_b # target upper bound, i.e. the upper bound we want to reach eventually
-    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 1 more than lower bound
+    trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 3 more than lower bound
 
     # Setting network weights initialization
     net.apply(init_weights)
+    debug_overflow = DebugUnderflowOverflow(net) 
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
         # update upper bound for curriculum learning
-        if train_elem_acc > (0.98 + epoch * (0.01 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
+        if train_elem_acc > (0.91 + epoch * (0.03 / cfg.problem.hyp.epochs)) and trainloader.dataset.upper_b < tgt_upper_b:
             trainloader.dataset.upper_b += 1
+            loaders["train"] = trainloader # ensure to overwrite the dataloader
             print(f'{"~"*55}\n\t\tUpper bound is now {trainloader.dataset.upper_b}\n{"~"*55}')
+
+            i,o = next(iter(trainloader)) # get a random sample for sanity check
+            print(f'\nBound Sample: {i[0]} | {o[0]}')
 
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
@@ -220,7 +225,6 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     SEED = torch.randint(0, 2**60, (1,), dtype=torch.int64).item()
-    SEED = 1152288624238028155
     print(f'Using seed: {SEED}')
     torch.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True

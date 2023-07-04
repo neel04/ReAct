@@ -54,8 +54,6 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator
 
 def train_progressive(net, loaders, train_setup, device, accelerator=None):
-    SEED = 115228862423802815
-    torch.manual_seed(SEED)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
@@ -70,12 +68,10 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     problem = train_setup.problem
     clip = train_setup.clip
 
-    #criterion = lambda x, y: torch.nn.MSELoss(reduction='none')(x, y) * 5 # alpha = 5
-    #TODO: Use weights
-    weights = torch.ones(13).to(device)
-    weights[11] = 0.2
-    criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weights)
-    accum_iters = 1
+    #weight = torch.ones(11).to(device)
+    #weight[10] = 0.1
+    criterion = torch.nn.CrossEntropyLoss(reduction='none')
+    accum_iters = 4
 
     train_loss = 0
     correct = 0
@@ -84,6 +80,10 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     
     for batch_idx, (inputs, targets) in enumerate(tqdm(trainloader, leave=False)):
         with accelerator.accumulate(net):
+            # check inputs and targets if they're NaN
+            if torch.isnan(inputs).any() or torch.isnan(targets).any():
+                raise ValueError(f"\n{'!'*20}\n{ic.format()}: NaN detected in inputs or targets. inputs: {inputs},\ntargets: {targets}\n{'!'*20}\n")
+
             inputs, targets = inputs.int(), targets.long()
             
             targets = targets.view(targets.size(0), -1)
@@ -106,8 +106,9 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # so we save time by setting it equal to 0).
             if alpha != 0:
                 outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-                outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
-                
+                outputs = outputs.view(outputs.size(0), -1)
+                targets = targets.view(-1)
+
                 with accelerator.autocast():
                     loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
             else:
@@ -132,8 +133,10 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
-        dim = 2 if alpha == 1 else 1
-        predicted = get_predicted(inputs, outputs_max_iters, problem, dim=dim)
+        predicted = get_predicted(inputs, outputs_max_iters, problem, dim=1)
+        predicted, targets = predicted.squeeze(), targets.squeeze()
+
+        # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded
 
         # compute elementwise accuracy, i.e compare each element of the prediction to the target
@@ -144,11 +147,11 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
 
         correct += torch.eq(targets, predicted).all().item()
         total += targets.size(0)
-
-    print(f'\nSample pred: {predicted[0]} | Sample answer: {targets[0]}')
+    
+    print(f'\nSample pred: {trainloader.dataset.decode(predicted[0])} | Sample answer: {trainloader.dataset.decode(targets[0])}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")
     print(f"\nTrain elementwise accuracy: {(sum(train_elem_acc)/len(train_elem_acc)) * 100}%\n")
-    print(f"\nTrain sequence accuracy: {(sum(train_seq_acc)/len(train_seq_acc)) * 100}%\n")
+    print(f"\nTrain sequence/batch accuracy: {(sum(train_seq_acc)/len(train_seq_acc)) * 100}%\n")
 
     train_loss = train_loss / (batch_idx + 1)
     acc = 100.0 * correct / total
