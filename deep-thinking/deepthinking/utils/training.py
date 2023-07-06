@@ -133,7 +133,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
-        predicted = get_predicted(inputs, outputs_max_iters, problem, dim=1)
+        predicted = get_predicted(inputs, outputs_max_iters.squeeze(), problem, dim=1)
         predicted, targets = predicted.squeeze(), targets.squeeze()
 
         # Compute MAE b/w preds and targets
