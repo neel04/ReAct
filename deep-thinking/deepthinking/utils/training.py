@@ -69,8 +69,8 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     problem = train_setup.problem
     clip = train_setup.clip
 
-    #weight = torch.ones(11).to(device)
-    #weight[10] = 0.1
+    weight = torch.ones(16).to(device)
+    weight[10] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none')
     accum_iters = 2
 
@@ -107,8 +107,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # so we save time by setting it equal to 0).
             if alpha != 0:
                 outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
-                outputs = outputs.view(outputs.size(0), -1)
-                targets = targets.view(-1)
+                outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
                     loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
@@ -134,8 +133,8 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
         optimizer.zero_grad(set_to_none=True)
 
         train_loss += loss.item()
-        predicted = get_predicted(inputs, outputs_max_iters, problem, dim=1)
-        predicted, targets = predicted.squeeze(), targets.squeeze()
+        predicted = get_predicted(inputs, outputs_max_iters, problem, dim = 2 if alpha == 1 else 1)
+        #predicted, targets = predicted.squeeze(), targets.squeeze()
 
         # Compute MAE b/w preds and targets
         train_metric.append(abs(predicted.float() - targets.float()).detach().mean()) #L1 metric, unrounded

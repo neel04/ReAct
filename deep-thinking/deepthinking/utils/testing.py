@@ -66,7 +66,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
             all_outputs = net(inputs, iters_to_do=max_iters)
 
             for i in range(all_outputs.size(1)):
-                outputs = all_outputs[:, i] #.transpose(1, 2)
+                outputs = all_outputs[:, i].transpose(1, 2)
                 old_predicted = get_predicted(inputs, outputs, problem)
                 targets = targets.view(targets.size(0), -1)
                 predicted = old_predicted.view(targets.size(0), -1)
