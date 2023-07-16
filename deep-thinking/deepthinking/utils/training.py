@@ -65,14 +65,12 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     warmup_scheduler = train_setup.warmup
     alpha = train_setup.alpha
     max_iters = train_setup.max_iters
-    k = 0
     problem = train_setup.problem
     clip = train_setup.clip
 
     weight = torch.ones(11).to(device)
     weight[10] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weight)
-    accum_iters = 1
 
     train_loss = 0
     correct = 0
@@ -122,7 +120,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             loss_max_iters_mean = loss_max_iters.mean()
             loss_progressive_mean = loss_progressive.mean()
             loss = (1 - alpha) * loss_max_iters_mean + alpha * loss_progressive_mean
-            loss = loss / accum_iters # accumulate gradients
+            #loss = loss / accum_iters # accumulate gradients
         
         accelerator.backward(loss)
 
