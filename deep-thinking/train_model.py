@@ -49,11 +49,6 @@ class DummyWandb:
     def save(self, *args, **kwargs):
         pass
 
-def init_weights(m):
-    if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d):
-        #torch.nn.init.eye_(m.weight)
-        m.bias.data.fill_(0.01) if m.bias is not None else None
-
 @hydra.main(config_path="config", config_name="train_model_config")
 def main(cfg: DictConfig):
     global wandb
@@ -137,7 +132,6 @@ def main(cfg: DictConfig):
     trainloader.dataset.upper_b = trainloader.dataset.lower_b + 1 # initialize upper bound to 3 more than lower bound
 
     # Setting network weights initialization
-    net.apply(init_weights)
     debug_overflow = DebugUnderflowOverflow(net) 
     
     for epoch in range(start_epoch, cfg.problem.hyp.epochs):
