@@ -68,8 +68,8 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     problem = train_setup.problem
     clip = train_setup.clip
 
-    weight = torch.ones(13).to(device)
-    weight[10] = 0.2
+    weight = torch.ones(3).to(device)
+    weight[2] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weight)
 
     train_loss = 0
