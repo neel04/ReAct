@@ -24,6 +24,7 @@ from icecream import ic
 from omegaconf import DictConfig, OmegaConf
 from accelerate import Accelerator
 from accelerate.utils import DistributedDataParallelKwargs
+from accelerate.utils import set_seed
 
 import deepthinking as dt
 import deepthinking.utils.logging_utils as lg
@@ -102,7 +103,8 @@ def main(cfg: DictConfig):
     optimizer, warmup_scheduler, lr_scheduler = dt.utils.get_optimizer(cfg.problem.hyp,
                                                                        cfg.problem.model,
                                                                        net,
-                                                                       optimizer_state_dict)
+                                                                       optimizer_state_dict,
+                                                                       accelerator)
     # preparing for acceleration
     net, optimizer, loaders["train"], loaders["val"], lr_scheduler = accelerator.prepare(net, optimizer, loaders["train"], loaders["val"], lr_scheduler)
 
@@ -218,9 +220,9 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    SEED = torch.randint(0, 2**60, (1,), dtype=torch.int64).item()
+    SEED = 420
     print(f'Using seed: {SEED}')
-    torch.manual_seed(SEED)
+    set_seed(SEED)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
