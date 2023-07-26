@@ -69,7 +69,7 @@ def main(cfg: DictConfig):
 
     if accelerator.is_main_process:
         wandb.init(project="ReAct", config=dict(dic_cfg), 
-                magic=True, sync_tensorboard=False, group='LEGO_32')
+                magic=True, sync_tensorboard=False, group='bADD_32')
         
         wandb.run.log_code("/fsx/awesome/DPT/", include_fn=lambda path: path.endswith(".py") or path.endswith(".ipynb") or path.endswith(".sh"))
 
