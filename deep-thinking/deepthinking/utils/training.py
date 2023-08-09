@@ -10,7 +10,8 @@
 """
 
 from dataclasses import dataclass
-from random import randrange
+from random import randrange, uniform
+from typing import Tuple
 
 import torch
 from icecream import ic
@@ -29,13 +30,23 @@ class TrainingSetup:
     max_iters: "typing.Any"
     problem: "typing.Any"
 
+def get_skewed_n_and_k(max_iters: int) -> Tuple[int, int]:
+    """
+    Get skewed n and k values for progressive training
+    to ensure a uniform distribution of sum(n, k) values
+    """
+    uniform_random = uniform(0, 1)
+    skew = randrange(10, 50)
+    n = randrange(1, max_iters)
+
+    # Apply skewing transformation
+    skewed_k = 1 + (max_iters - n) * uniform_random ** skew
+    return n, int(skewed_k)
 
 def get_output_for_prog_loss(inputs, max_iters, net):
     # get features from n iterations to use as input
-    n = randrange(0, max_iters)
-
     # do k iterations using intermediate features as input
-    k = randrange(1, max_iters - n + 1)
+    n, k = get_skewed_n_and_k(max_iters) # ensure uniform distribution of n + k
 
     if n > 0:
         _, interim_thought = net(inputs, iters_to_do=n)
