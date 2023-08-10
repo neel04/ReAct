@@ -10,8 +10,8 @@
 """
 
 from dataclasses import dataclass
-from random import randrange, uniform
-from typing import Tuple
+from random import randrange, choices
+from typing import Tuple, Any
 
 import torch
 from icecream import ic
@@ -22,20 +22,28 @@ from deepthinking.utils.testing import get_predicted
 @dataclass
 class TrainingSetup:
     """Attributes to describe the training precedure"""
-    optimizer: "typing.Any"
-    scheduler: "typing.Any"
-    warmup: "typing.Any"
-    clip: "typing.Any"
-    alpha: "typing.Any"
-    max_iters: "typing.Any"
-    problem: "typing.Any"
+    optimizer: "Any"
+    scheduler: "Any"
+    warmup: "Any"
+    clip: "Any"
+    alpha: "Any"
+    max_iters: "Any"
+    problem: "Any"
 
+def get_skewed_n_and_k(max_iters: int) -> Tuple[int, int]:
+    n = randrange(0, max_iters-1)
+    k_range = range(1, max_iters - n)
+
+    weights = lambda length, mean, stddev: [int(abs(i - mean) <= stddev) + 0.5 for i in range(length)] if len(k_range) > 1 else None
+    weight = weights(len(k_range), len(k_range) // 0.2, 1)
+
+    k = choices(k_range, weights=weight, k=1)[0] # weighted sampling
+    return n, k
 
 def get_output_for_prog_loss(inputs, max_iters, net):
     # get features from n iterations to use as input
-    n = randrange(0, max_iters)
     # do k iterations using intermediate features as input
-    k = randrange(1, max_iters - n + 1)
+    n, k = get_skewed_n_and_k(max_iters)
 
     if n > 0:
         _, interim_thought = net(inputs, iters_to_do=n)
