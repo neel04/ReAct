@@ -52,7 +52,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
         interim_thought = None
 
     outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
-    return outputs, k
+    return outputs, n+k
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
@@ -112,15 +112,16 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
             # so we save time by setting it equal to 0).
             if alpha != 0:
-                outputs, k = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs, steps = get_output_for_prog_loss(inputs, max_iters, net)
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
-                    # k is in [1, max_iters - 1] so we need to rescale it to [1, 5] to use as a weight
-                    # for the progressive loss term
-                    k = (k - 1) / (max_iters - 1) * 5 + 1
+                    # The larger the k is, the less weight we want to give to the loss on a exponential scale which compensates
+                    # the distrubtion of n+k
+                    weight_dict = {i: 2 * (1 - (i / max_iters)) for i in range(max_iters)} # coefficients are arbitrary and can be adjusted
+
                     loss_progressive = criterion(outputs, targets)
-                    loss_progressive = loss_progressive * k
+                    loss_progressive = loss_progressive * torch.tensor([weight_dict[steps]]).to(device)
             else:
                 loss_progressive = torch.zeros_like(targets).float()
             if problem == "mazes":
