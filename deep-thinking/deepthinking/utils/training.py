@@ -116,7 +116,11 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
-                    loss_progressive = criterion(outputs, targets) # outputs: [1024, 13, 64] | targets: [1024, 64]
+                    # k is in [1, max_iters - 1] so we need to rescale it to [1, 2] to use as a weight
+                    # for the progressive loss term
+                    k = (k - 1) / (max_iters - 1)
+                    loss_progressive = criterion(outputs, targets)
+                    loss_progressive = loss_progressive * k
             else:
                 loss_progressive = torch.zeros_like(targets).float()
             if problem == "mazes":
