@@ -46,7 +46,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     n, k = get_skewed_n_and_k(max_iters)
 
     if n > 0:
-        _, interim_thought = net(inputs, iters_to_do=n)
+        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None, add_noise=True)
         interim_thought = interim_thought.detach()
     else:
         interim_thought = None
