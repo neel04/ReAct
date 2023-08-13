@@ -46,7 +46,10 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     n, k = get_skewed_n_and_k(max_iters)
 
     if n > 0:
-        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None, add_noise=True)
+        # noisy_iterations is a list of indices of iterations to add noise to
+        # it can be of length 0 (empty list), 1, or 2
+        noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 3))]
+        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None, add_noise=noisy_iteration)
         interim_thought = interim_thought.detach()
     else:
         interim_thought = None
