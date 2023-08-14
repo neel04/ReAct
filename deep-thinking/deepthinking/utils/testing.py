@@ -24,8 +24,8 @@ from tqdm import tqdm
 def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
 
-    if extra_metrics:
-        return test_default(net, loaders, iters, problem, device, extra_metrics)
+    if extra_metrics and len(loaders) == 1:
+        return test_default(net, loaders[0], iters, problem, device, extra_metrics)
 
     for idx, loader in enumerate(loaders):
         if mode == "default":
