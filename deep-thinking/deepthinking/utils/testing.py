@@ -56,6 +56,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
     max_iters = max(iters)
     net.eval()
     corrects = torch.zeros(max_iters)
+    elemwise_corrects = torch.zeros(max_iters)
     total = 0
     incorrect_input, incorrect_output, incorrect_target = None, None, None
 
@@ -63,14 +64,18 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
         for inputs, targets in tqdm(testloader, leave=False):
             inputs, targets = inputs.to(device).int(), targets.to(device).long()
 
-            all_outputs = net(inputs, iters_to_do=max_iters)
+            all_outputs = net(inputs, iters_to_do=max_iters) # shape: (batch_size, max_iters, SEQ_LEN, tgt_vocab_size)
 
             for i in range(all_outputs.size(1)):
-                outputs = all_outputs[:, i].transpose(1, 2)
+                outputs = all_outputs[:, i].transpose(1, 2) # shape: (batch_size, tgt_vocab_size, SEQ_LEN)
                 old_predicted = get_predicted(inputs, outputs, problem)
-                targets = targets.view(targets.size(0), -1)
-                predicted = old_predicted.view(targets.size(0), -1)
+
+                targets = targets.view(targets.size(0), -1) # shape: (batch_size, SEQ_LEN)
+                predicted = old_predicted.view(targets.size(0), -1) # shape: (batch_size, SEQ_LEN)
+
                 corrects[i] += torch.amin(predicted == targets, dim=[1]).sum().item()
+                elemwise_corrects[i] += (predicted == targets).sum().item()
+
                 # get a sample incorrect prediction to debug
                 if (old_predicted != targets).any():
                         # find which one is incorrect
@@ -80,6 +85,8 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
             total += targets.size(0)
 
     accuracy = 100.0 * corrects / total
+    elemwise_accuracy = 100.0 * elemwise_corrects / targets.numel()
+
     ret_acc = {}
     for ite in iters:
         ret_acc[ite] = accuracy[ite-1].item()
@@ -87,10 +94,13 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
     # ret_acc is a dictionary of accuracies for each iteration. with the key being the iteration and the value being the accuracy
     # best_val_acc is the best accuracy achieved. best_val_iteration is the iteration at which the best accuracy was achieved
     best_val_acc, best_val_iteration = max(ret_acc.values()), max(ret_acc, key=ret_acc.get)
+
     if extra_metrics:
         print(f'DEBUG: RETURNING best_val_acc: {best_val_acc} | best_val_iteration: {best_val_iteration} | ret_acc: {ret_acc}')
         print(f'\nDEBUG: INCORRECT VAL/TEST PREDICTION: input: {incorrect_input} | output: {incorrect_output} | target: {incorrect_target}')
         return ret_acc, best_val_acc, best_val_iteration # for validation set
+    elif testloader == 'test':
+        return ret_acc, elemwise_accuracy
     else:
         return ret_acc
 

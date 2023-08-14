@@ -171,22 +171,26 @@ def main(cfg: DictConfig):
 
         # evaluate the model periodically and at the final epoch
         if (epoch + 1) % cfg.problem.hyp.val_period == 0 or epoch + 1 == cfg.problem.hyp.epochs:
-            test_acc, val_acc, train_acc = dt.test(net,
-                                                   [loaders["test"],
-                                                    loaders["val"],
-                                                    loaders["train"]],
-                                                   cfg.problem.hyp.test_mode,
-                                                   cfg.problem.model.test_iterations,
-                                                   cfg.problem.name,
-                                                   device)
+            (test_acc, test_elem), val_acc, train_acc = dt.test(net,
+                                                                [loaders["test"],
+                                                                loaders["val"],
+                                                                loaders["train"]],
+                                                                cfg.problem.hyp.test_mode,
+                                                                cfg.problem.model.test_iterations,
+                                                                cfg.problem.name,
+                                                                device)
             log.info(f"Training accuracy: {train_acc}")
             log.info(f"Val accuracy: {val_acc}")
             log.info(f"Test accuracy (hard data): {test_acc}")
+            log.info(f"Test elementwise accuracy (hard data): {test_elem}")
 
             tb_last = cfg.problem.model.test_iterations[-1]
-            wandb.log({"Accuracy/final_train_acc": train_acc[tb_last],
-                       "Accuracy/final_val_acc": val_acc[tb_last],
-                       "Accuracy/test_acc (hard_data)": test_acc[tb_last]}, step=epoch)
+            wandb.log({
+                "Accuracy/final_train_acc": train_acc[tb_last],
+                "Accuracy/final_val_acc": val_acc[tb_last],
+                "Accuracy/test_acc (hard_data)": test_acc[tb_last],
+                "Accuracy/test_elem_acc (hard_data)": test_elem
+                }, step=epoch)
 
         # check to see if we should save
         save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or \
@@ -210,6 +214,7 @@ def main(cfg: DictConfig):
                          ("test_mode", cfg.problem.hyp.test_mode),
                          ("train_data", cfg.problem.train_data),
                          ("train_acc", train_acc),
+                         ("test_elem_acc", test_elem),
                          ("val_acc", val_acc)])
     with open(os.path.join("stats.json"), "w") as fp:
         json.dump(stats, fp)
