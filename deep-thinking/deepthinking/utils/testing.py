@@ -23,13 +23,13 @@ from tqdm import tqdm
 
 def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
-    for loader in loaders:
+    for idx, loader in enumerate(loaders):
         if mode == "default":
-            if loader == 'test':
+            if idx == 0:
                 accuracy, elem_acc = test_default(net, loader, iters, problem, device, extra_metrics)
                 accs.append(elem_acc)
             else:
-                accuracy = test_default(net, loader, iters, problem, device, extra_metrics)
+                accuracy, _ = test_default(net, loader, iters, problem, device, extra_metrics)
 
         elif mode == "max_conf":
             accuracy = test_max_conf(net, loader, iters, problem, device)
@@ -105,10 +105,8 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
         print(f'DEBUG: RETURNING best_val_acc: {best_val_acc} | best_val_iteration: {best_val_iteration} | ret_acc: {ret_acc}')
         print(f'\nDEBUG: INCORRECT VAL/TEST PREDICTION: input: {incorrect_input} | output: {incorrect_output} | target: {incorrect_target}')
         return ret_acc, best_val_acc, best_val_iteration # for validation set
-    elif testloader == 'test':
-        return ret_acc, elemwise_accuracy
     else:
-        return ret_acc
+        return ret_acc, elemwise_accuracy # for test set
 
 
 def test_max_conf(net, testloader, iters, problem, device):
