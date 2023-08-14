@@ -63,7 +63,7 @@ def main(cfg: DictConfig):
     dic_cfg = OmegaConf.to_container(cfg, resolve=True)
     
     # ---- Distributed Data Parallel ----
-    ddp_scaler = DistributedDataParallelKwargs(find_unused_parameters=True)
+    ddp_scaler = DistributedDataParallelKwargs(find_unused_parameters=False)
     accelerator = Accelerator(gradient_accumulation_steps=1, kwargs_handlers=[ddp_scaler])
     device = accelerator.device
 
