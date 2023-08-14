@@ -25,9 +25,15 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
     for loader in loaders:
         if mode == "default":
-            accuracy = test_default(net, loader, iters, problem, device, extra_metrics)
+            if loader == 'test':
+                accuracy, elem_acc = test_default(net, loader, iters, problem, device, extra_metrics)
+                accs.append(elem_acc)
+            else:
+                accuracy = test_default(net, loader, iters, problem, device, extra_metrics)
+
         elif mode == "max_conf":
             accuracy = test_max_conf(net, loader, iters, problem, device)
+
         else:
             raise ValueError(f"{ic.format()}: test_{mode}() not implemented.")
         accs.append(accuracy)

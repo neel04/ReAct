@@ -171,7 +171,7 @@ def main(cfg: DictConfig):
 
         # evaluate the model periodically and at the final epoch
         if (epoch + 1) % cfg.problem.hyp.val_period == 0 or epoch + 1 == cfg.problem.hyp.epochs:
-            (test_acc, test_elem), val_acc, train_acc = dt.test(net,
+            test_elem, test_acc, val_acc, train_acc = dt.test(net,
                                                                 [loaders["test"],
                                                                 loaders["val"],
                                                                 loaders["train"]],
