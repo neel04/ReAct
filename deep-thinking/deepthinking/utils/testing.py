@@ -25,7 +25,7 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
     for idx, loader in enumerate(loaders):
         if mode == "default":
-            if idx == 0:
+            if idx == 0 and len(loaders) > 1:  # ugly hack to not trigger on solely validation phase
                 accuracy, elem_acc = test_default(net, loader, iters, problem, device, extra_metrics)
                 accs.append(elem_acc)
             else:
