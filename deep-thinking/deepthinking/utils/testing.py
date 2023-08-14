@@ -23,16 +23,17 @@ from tqdm import tqdm
 
 def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
+
+    if extra_metrics:
+        return test_default(net, loaders, iters, problem, device, extra_metrics)
+
     for idx, loader in enumerate(loaders):
         if mode == "default":
             if idx == 0 and len(loaders) > 1:  # ugly hack to not trigger on solely validation phase
                 accuracy, elem_acc = test_default(net, loader, iters, problem, device, extra_metrics)
                 accs.append(elem_acc)
             else:
-                if not extra_metrics:
-                    accuracy, _ = test_default(net, loader, iters, problem, device, extra_metrics)
-                else:
-                    return test_default(net, loader, iters, problem, device, extra_metrics)
+                accuracy, _ = test_default(net, loader, iters, problem, device, extra_metrics)
 
         elif mode == "max_conf":
             accuracy = test_max_conf(net, loader, iters, problem, device)
