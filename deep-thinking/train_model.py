@@ -193,8 +193,7 @@ def main(cfg: DictConfig):
                 }, step=epoch)
 
         # check to see if we should save
-        save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or \
-                   (epoch + 1) == cfg.problem.hyp.epochs or best_so_far
+        save_now = (epoch + 1) % cfg.problem.hyp.save_period == 0 or (epoch + 1) == cfg.problem.hyp.epochs or best_so_far
         if save_now:
             accelerator.wait_for_everyone()
             accelerator.save(epoch, "/fsx/awesome/DPT/outputs/epoch.pkl")

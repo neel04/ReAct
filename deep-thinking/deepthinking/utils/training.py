@@ -30,26 +30,17 @@ class TrainingSetup:
     max_iters: "Any"
     problem: "Any"
 
-def get_skewed_n_and_k(max_iters: int) -> Tuple[int, int]:
-    n = randrange(0, max_iters-1)
-    k_range = range(1, max_iters - n)
-
-    weights = lambda length, mean, stddev: [int(abs(i - mean) <= stddev) + 0.5 for i in range(length)] if len(k_range) > 1 else None
-    weight = weights(len(k_range), len(k_range) // 0.2, 1)
-
-    k = choices(k_range, weights=weight, k=1)[0] # weighted sampling
-    return n, k
-
 def get_output_for_prog_loss(inputs, max_iters, net):
     # get features from n iterations to use as input
+    n = randrange(0, max_iters)
     # do k iterations using intermediate features as input
-    n, k = get_skewed_n_and_k(max_iters)
+    k = randrange(1, max_iters - n + 1)
 
     if n > 0:
         # noisy_iterations is a list of indices of iterations to add noise to
         # it can be of length 0 (empty list), 1
-        noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 2))]
-        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None, add_noise=noisy_iteration)
+        #noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 2))]
+        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None)
         interim_thought = interim_thought.detach()
     else:
         interim_thought = None
