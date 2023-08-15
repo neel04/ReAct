@@ -25,7 +25,6 @@ def test(net, loaders, mode, iters, problem, device, extra_metrics=False):
     accs = []
 
     if extra_metrics:
-        print(f'Entering with extra_metrics: {extra_metrics}')
         return test_default(net, loaders[0], iters, problem, device, extra_metrics)
 
     for idx, loader in enumerate(loaders):
