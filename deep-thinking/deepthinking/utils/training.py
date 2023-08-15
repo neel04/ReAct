@@ -47,8 +47,8 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 
     if n > 0:
         # noisy_iterations is a list of indices of iterations to add noise to
-        # it can be of length 0 (empty list), 1, or 2
-        noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 3))]
+        # it can be of length 0 (empty list), 1
+        noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 2))]
         _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None, add_noise=noisy_iteration)
         interim_thought = interim_thought.detach()
     else:
