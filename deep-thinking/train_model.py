@@ -202,7 +202,7 @@ def main(cfg: DictConfig):
             best_so_far = False
             log.info(f"Saving model to: {out_str}")
             accelerator.save_state(output_dir=f"/fsx/awesome/DPT/outputs/{out_str}")
-            wandb.save(out_str)
+            wandb.save(f"/fsx/awesome/DPT/outputs/{out_str}")
 
     # save some accuracy stats (can be used without testing to discern which models trained)
     stats = OrderedDict([("max_iters", cfg.problem.model.max_iters),
