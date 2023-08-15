@@ -112,7 +112,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
                 with accelerator.autocast():
                     # The larger the k is, the less weight we want to give to the loss on a exponential scale which compensates
                     # the distrubtion of n+k
-                    weight_dict = {i: 2 * (1 - (i / max_iters)) for i in range(max_iters)} # coefficients are arbitrary and can be adjusted
+                    weight_dict = {i: 2 * (1 - (i / (max_iters + 1))) for i in range(0, max_iters + 1)} # coefficients are arbitrary and can be adjusted
 
                     loss_progressive = criterion(outputs, targets)
                     loss_progressive = loss_progressive * torch.tensor([weight_dict[steps]]).to(device)
