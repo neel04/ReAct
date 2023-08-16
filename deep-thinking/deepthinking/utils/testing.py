@@ -66,8 +66,8 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
     max_iters = max(iters)
     net.eval()
     corrects = torch.zeros(max_iters)
-    elemwise_corrects = torch.zeros(500)
-    total = 0
+    elemwise_corrects = torch.zeros(max_iters)
+    total, total_elems = 0, 0
     incorrect_input, incorrect_output, incorrect_target = None, None, None
 
     with torch.no_grad():
@@ -84,7 +84,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
                 predicted = old_predicted.view(targets.size(0), -1) # shape: (batch_size, SEQ_LEN)
 
                 corrects[i] += torch.amin(predicted == targets, dim=[1]).sum().item()
-                elemwise_corrects[i] += (predicted == targets).sum().item() / predicted.numel()
+                elemwise_corrects[i] += (predicted == targets).sum().item()
 
                 # get a sample incorrect prediction to debug
                 if (old_predicted != targets).any():
@@ -93,9 +93,10 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
                         incorrect_input, incorrect_output, incorrect_target = inputs[incorrect_idx], old_predicted[incorrect_idx].detach().round().int(), targets[incorrect_idx]
 
             total += targets.size(0)
+            total_elems += targets.numel()
 
     accuracy = 100.0 * corrects / total
-    elemwise_accuracy = 100.0 * elemwise_corrects.mean()
+    elemwise_accuracy = int(100.0 * elemwise_corrects / total_elems)
 
     ret_acc = {}
     for ite in iters:
