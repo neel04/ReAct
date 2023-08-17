@@ -3,7 +3,7 @@ import io
 import time
 
 from collections import Counter
-from typing import List
+from typing import List, Tuple
 from PIL import Image
 
 def plot_freq(errors: List[int], epoch: int) -> Tuple[Counter, Image.Image]:
