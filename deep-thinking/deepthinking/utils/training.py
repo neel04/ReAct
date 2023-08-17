@@ -46,7 +46,8 @@ def get_output_for_prog_loss(inputs, max_iters, net):
     else:
         interim_thought = None
     
-    perturbed_interim_thought, num_errors = corrupt_progress(interim_thought, net.module.out_head, epsilon=2e-4, steps=10) # add a few small errors
+    output_head = net.module.out_head.detach().clone().requires_grad_(False)
+    perturbed_interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=2e-4, steps=10) # add a few small errors
     perturbed_interim_thought = perturbed_interim_thought.detach()
 
     outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=perturbed_interim_thought)
