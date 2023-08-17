@@ -5,14 +5,14 @@ import random
 def corrupt_progress(
     input: torch.Tensor,
     out_head: torch.nn.Module,
-    tgt_vocab_size: int = 2,
+    tgt_vocab_size: int = 3,
     epsilon: float = 2e-4,
-    steps: int = 5
+    steps: int = 5,
 ) -> Tuple[torch.Tensor, int]:
     """
     Corrupts the given interim_thought using backpropagation steps.
-	  Few GD steps wouldn't converge, giving us a slightly more corrupted version
-	  than what the GD process would have targeted towards. Saves time - 10ms on a T4
+    Few GD steps wouldn't converge, giving us a slightly more corrupted version
+    than what the GD process would have targeted towards. Saves time - 10ms on a T4
 
     Args:
         input (torch.Tensor): Input tensor to be perturbed. Can be batched.
@@ -26,18 +26,19 @@ def corrupt_progress(
         int: Number of errors generated during perturbation.
     """
     # Make sure input requires gradient
+    n = 2  # number of bits to corrupt
     vanilla_tensor = input.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
 
     # Generate a list of unique indices to corrupt for each batch element
     og_output = torch.softmax(out_head(vanilla_tensor), dim=-1).argmax(-1)
-    corrupt_indices = [random.sample(range(len(og)), 2) for og in og_output]
+    corrupt_indices = [random.sample(range(len(og)), n) for og in og_output]
 
     # Corrupt the bits at the selected indices for each batch element
     corrupted_output = og_output.clone()
     for i, indices in enumerate(corrupt_indices):
-        corrupted_output[i, indices] = 1 - corrupted_output[i, indices]
+        corrupted_output[i, indices] = torch.Tensor([random.choices(range(0, tgt_vocab_size))] * n).reshape(-1).long()
 
     target_output = torch.nn.functional.one_hot(corrupted_output.long(), num_classes=tgt_vocab_size).float()
 
@@ -73,10 +74,10 @@ def corrupt_progress(
     return perturbed_thought, errors_generated
 
 if __name__ == "__main__":
-	# Example usage
-	interim_thought = torch.randn(96, 96)
-	out_head = torch.nn.Linear(96, 2)
-	perturbed_thought, errors_generated = corrupt_progress(interim_thought, out_head, tgt_vocab_size=2)
+    # Example usage
+    interim_thought = torch.randn(96, 96)
+    out_head = torch.nn.Linear(96, 2)
+    perturbed_thought, errors_generated = corrupt_progress(interim_thought, out_head, tgt_vocab_size=2)
 
-	print("Perturbed Thought:\n", perturbed_thought)
-	print("Errors Generated:", errors_generated)
+    print("Perturbed Thought:\n", perturbed_thought)
+    print("Errors Generated:", errors_generated)
