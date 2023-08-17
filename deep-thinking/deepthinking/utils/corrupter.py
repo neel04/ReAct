@@ -37,8 +37,13 @@ def corrupt_progress(
 
     # Corrupt the bits at the selected indices for each batch element
     corrupted_output = og_output.clone()
+
     for i, indices in enumerate(corrupt_indices):
-        corrupted_output[i, indices] = torch.Tensor([random.choices(range(0, tgt_vocab_size))] * n).reshape(-1).long()
+		# TODO: This is a ugly hack
+		# Replace the corrupted bits with random bits, withing class range
+        corrupted_output[i, indices] = torch.Tensor(
+            [random.choices(range(0, tgt_vocab_size))] * n
+            ).reshape(-1).long().to(corrupted_output.device)
 
     target_output = torch.nn.functional.one_hot(corrupted_output.long(), num_classes=tgt_vocab_size).float()
 
