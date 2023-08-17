@@ -152,7 +152,7 @@ def main(cfg: DictConfig):
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
         # create a matplotlib barplot of frequencies of integers in errors
-        error_counter, fig = plot_freq(errors, epoch) # saves the plot as a png file
+        error_counter, pil_image = plot_freq(errors, epoch) # saves the plot as a png file
         print(f'Errors Distribution: {error_counter}')
 
         if best_val_acc > highest_val_acc_so_far:
@@ -172,9 +172,8 @@ def main(cfg: DictConfig):
                    "Accuracy/train_seq_acc": train_seq_acc}, step=epoch)
         
         # log the errors distribution
-        image  = PIL.Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
         wandb.log(
-            {"Errors Distribution": wandb.Image(image)},
+            {"Errors Distribution": wandb.Image(pil_image)},
             step=epoch
         )
 

@@ -1,12 +1,12 @@
+import matplotlib.pyplot as plt
+
+from typing import Tuple
 from collections import Counter
 from typing import List
+from PIL import Image
 
-import matplotlib.pyplot as plt
-import time
-
-def plot_freq(errors: List[int], epoch: int):
-    """Plot the frequency of errors generated during training."""
-
+def plot_freq(errors: List[int], epoch: int) -> Tuple[Counter, Image.Image]:
+    """Plot the frequency of errors generated during training and return a PIL Image."""
     error_counter = Counter(errors)
     # Extract unique errors and their corresponding frequencies
     unique_errors = list(error_counter.keys())
@@ -39,9 +39,9 @@ def plot_freq(errors: List[int], epoch: int):
     # Add a background color to the plot area
     fig.patch.set_facecolor('white')
 
-    # Show the plot
-    plt.tight_layout()
-    #plt.savefig(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')
+    # Save the figure to a PIL Image
+    pil_image = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+
     plt.close()
 
-    return error_counter, fig
+    return error_counter, pil_image
