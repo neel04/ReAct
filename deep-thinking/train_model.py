@@ -146,9 +146,12 @@ def main(cfg: DictConfig):
             i,o = next(iter(trainloader)) # get a random sample for sanity check
             print(f'\nBound Sample: {i[0]} | {o[0]}')
 
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, errors = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
+
+        hist = np.histogram(errors, bins=range(min(errors), max(errors) + 2))
+        hist = wandb.Histogram(np_histogram=hist)
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -165,6 +168,8 @@ def main(cfg: DictConfig):
         wandb.log({"Loss/loss": loss, "Accuracy/acc": acc, "Accuracy/val_acc": best_val_acc,
                    "MAE/train_mae": train_mae, "Accuracy/train_elem_acc": train_elem_acc,
                    "Accuracy/train_seq_acc": train_seq_acc}, step=epoch)
+
+        wandb.log({"Errors": hist}, step=epoch)
 
         for i in range(len(optimizer.param_groups)):
             wandb.log({"Learning_rate/group{i}": optimizer.param_groups[i]["lr"]}, step=epoch)

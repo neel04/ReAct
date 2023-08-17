@@ -18,6 +18,7 @@ from icecream import ic
 from tqdm.auto import tqdm
 
 from deepthinking.utils.testing import get_predicted
+from deepthinking.utils.corrupter import corrupt_progress
 
 @dataclass
 class TrainingSetup:
@@ -44,16 +45,17 @@ def get_output_for_prog_loss(inputs, max_iters, net):
         interim_thought = interim_thought.detach()
     else:
         interim_thought = None
-
-    outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
-    return outputs, n+k
+    
+    perturbed_interim_thought, num_errors = corrupt_progress(interim_thought, net.out_head, epsilon=2e-4, steps=10) # add a few small errors
+    outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=perturbed_interim_thought)
+    return outputs, n+k, num_errors
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator = train_progressive(net, loaders, train_setup, device, acc_obj)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
-    return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator
+    return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
 def train_progressive(net, loaders, train_setup, device, accelerator=None):
     torch.backends.cudnn.deterministic = True
@@ -106,7 +108,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
             # so we save time by setting it equal to 0).
             if alpha != 0:
-                outputs, steps = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs, steps, errors = get_output_for_prog_loss(inputs, max_iters, net)
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
@@ -163,5 +165,6 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     lr_scheduler.step()
     warmup_scheduler.dampen()
 
-    return train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), sum(train_seq_acc)/len(train_seq_acc), accelerator
-    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, accelerator
+    return (train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), 
+            sum(train_seq_acc)/len(train_seq_acc), accelerator, errors)
+    # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, accelerator, errors
