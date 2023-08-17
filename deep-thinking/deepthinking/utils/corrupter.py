@@ -3,7 +3,7 @@ import torch
 import random
 
 def corrupt_progress(
-    input: torch.Tensor,
+    input_tensor: torch.Tensor,
     out_head: torch.nn.Module,
     tgt_vocab_size: int = 3,
     epsilon: float = 2e-4,
@@ -25,9 +25,12 @@ def corrupt_progress(
         torch.Tensor: Perturbed thought after backpropagation steps.
         int: Number of errors generated during perturbation.
     """
+    if input_tensor is None:
+        return None, [0]
+
     # Make sure input requires gradient
     n = 2  # number of bits to corrupt
-    vanilla_tensor = input.detach().clone()
+    vanilla_tensor = input_tensor.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
 
