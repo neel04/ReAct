@@ -1,6 +1,8 @@
 from collections import Counter
 from typing import List
+
 import matplotlib.pyplot as plt
+import time
 
 def plot_freq(errors: List[int], epoch: int):
     """Plot the frequency of errors generated during training."""
@@ -41,5 +43,8 @@ def plot_freq(errors: List[int], epoch: int):
     plt.tight_layout()
     plt.savefig(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')
     plt.close()
+
+    # wait for the plot to be saved. sleep for 3 seconds
+    time.sleep(3)
 
     return error_counter, fig
