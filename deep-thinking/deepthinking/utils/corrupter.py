@@ -26,7 +26,7 @@ def corrupt_progress(
         int: Number of errors generated during perturbation.
     """
     if input_tensor is None:
-        return None, [0]
+        return input_tensor, [0]
 
     # Make sure input requires gradient
     n = 2  # number of bits to corrupt
