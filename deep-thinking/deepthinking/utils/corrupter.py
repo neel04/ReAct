@@ -3,67 +3,74 @@ import torch
 import random
 
 def corrupt_progress(
-	interim_thought: torch.Tensor,
-	out_head: torch.nn.Module,
-	tgt_vocab_size: int = 2,
-	epsilon: float = 2e-4,
-	steps: int = 5
+    input: torch.Tensor,
+    out_head: torch.nn.Module,
+    tgt_vocab_size: int = 2,
+    epsilon: float = 2e-4,
+    steps: int = 5
 ) -> Tuple[torch.Tensor, int]:
-	
-	"""
-	Corrupts the given interim_thought using backpropagation steps.
-	Few GD steps wouldn't converge, giving us a slightly more corrupted version
-	than what the GD process would have targeted towards. Saves time - 10ms on a T4
+    """
+    Corrupts the given interim_thought using backpropagation steps.
+	  Few GD steps wouldn't converge, giving us a slightly more corrupted version
+	  than what the GD process would have targeted towards. Saves time - 10ms on a T4
 
-	Args:
-		interim_thought (torch.Tensor): Input tensor to be perturbed.
-		epsilon (float, optional): Step size for perturbation. Defaults to 2e-4.
-		steps (int, optional): Number of backpropagation steps. Defaults to 5.
+    Args:
+        input (torch.Tensor): Input tensor to be perturbed. Can be batched.
+        out_head (torch.nn.Module): Neural network head for output calculation.
+        tgt_vocab_size (int, optional): Number of classes in the target vocabulary. Defaults to 2.
+        epsilon (float, optional): Step size for perturbation. Defaults to 2e-4.
+        steps (int, optional): Number of backpropagation steps. Defaults to 5.
 
-	Returns:
-		torch.Tensor: Perturbed thought after backpropagation steps.
-		int: Number of errors generated during perturbation.
-	"""
-	# Make sure interim_thought requires gradient
-	interim_thought.requires_grad = True
+    Returns:
+        torch.Tensor: Perturbed thought after backpropagation steps.
+        int: Number of errors generated during perturbation.
+    """
+    # Make sure input requires gradient
+    vanilla_tensor = input.detach().clone()
+    vanilla_tensor.requires_grad = True
+    out_head.requires_grad = False
 
-	# Generate a list of unique indices to corrupt
-	og_output = torch.softmax(out_head(interim_thought), dim=-1).argmax(-1)
-	corrupt_indices = random.sample(range(len(og_output)), 3)
+    # Generate a list of unique indices to corrupt for each batch element
+    og_output = torch.softmax(out_head(vanilla_tensor), dim=-1).argmax(-1)
+    corrupt_indices = [random.sample(range(len(og)), 2) for og in og_output]
 
-	# Corrupt the bits at the selected indices
-	corrupted_output = og_output.clone()
-	for index in corrupt_indices:
-		corrupted_output[index] = 1 - corrupted_output[index]
+    # Corrupt the bits at the selected indices for each batch element
+    corrupted_output = og_output.clone()
+    for i, indices in enumerate(corrupt_indices):
+        corrupted_output[i, indices] = 1 - corrupted_output[i, indices]
 
-	target_output = torch.nn.functional.one_hot(corrupted_output, num_classes=tgt_vocab_size).float()
+    target_output = torch.nn.functional.one_hot(corrupted_output.long(), num_classes=tgt_vocab_size).float()
 
-	# Define a loss function
-	loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
+    # Define a loss function
+    loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
 
-	for _ in range(steps):
-		# Compute the original output
-		original_output = torch.softmax(out_head(interim_thought), dim=-1)
+    for _ in range(steps):
+        # Compute the original output
+        original_output = torch.softmax(out_head(vanilla_tensor), dim=-1)
 
-		# Compute the loss between the original output and the target output
-		loss = loss_fn(original_output, target_output)
+        # Compute the loss between the original output and the target output
+        loss = loss_fn(original_output, target_output)
 
-		# Backpropagate to compute gradients
-		loss.backward()
+        # Backpropagate to compute gradients
+        loss.backward()
 
-		# Update interim_thought using gradient descent
-		with torch.no_grad():
-			interim_thought += epsilon * interim_thought.grad.sign()
+        # Update vanilla_tensor using gradient descent
+        with torch.no_grad():
+            vanilla_tensor += epsilon * vanilla_tensor.grad.sign()
 
-		# Zero out the gradients for the next iteration
-		interim_thought.grad.zero_()
+        # Zero out the gradients for the next iteration
+        vanilla_tensor.grad.zero_()
 
-	perturbed_thought = interim_thought
-	perturbed_output = torch.softmax(out_head(perturbed_thought), dim=-1)
+    perturbed_thought = vanilla_tensor.clone()
+    perturbed_output = torch.softmax(out_head(perturbed_thought), dim=-1)
 
-	errors_generated = torch.count_nonzero((perturbed_output.argmax(-1) == og_output) == 0)
+    # list of errors per batch element
+    errors_generated = [
+        torch.count_nonzero((perturbed_output[i].argmax(-1) == og_output[i]) == 0).item()
+        for i in range(og_output.size(0))
+    ]
 
-	return perturbed_thought, errors_generated
+    return perturbed_thought, errors_generated
 
 if __name__ == "__main__":
 	# Example usage
