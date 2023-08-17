@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 import hydra
 import numpy as np
@@ -150,8 +150,9 @@ def main(cfg: DictConfig):
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
-        errors = [[e] for e in errors]
-        table = wandb.Table(data=errors, columns=["Errors"])
+        # get a dict of frequencies of integers in errors
+        print(f'Errors Distribution: {Counter(errors)}')
+        hist = wandb.Histogram(sequence=errors, num_bins=max(errors) + 1)
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -171,7 +172,7 @@ def main(cfg: DictConfig):
         
         # log the errors
         wandb.log(
-            {"Errors_distribution": wandb.plot.histogram(table, "Errors", title="Errors Distribution")},
+            {"Errors_distribution": hist}
         )
 
 
