@@ -27,8 +27,8 @@ from accelerate.utils import DistributedDataParallelKwargs
 from accelerate.utils import set_seed
 
 import deepthinking as dt
-import deepthinking.utils.logging_utils as lg
 from deepthinking.utils.debug_utils import DebugUnderflowOverflow
+from deepthinking.utils.plotter import plot_freq
 
 # Ignore statements for pylint:
 #     Too many branches (R0912), Too many statements (R0915), No member (E1101),
@@ -150,9 +150,9 @@ def main(cfg: DictConfig):
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
-        # get a dict of frequencies of integers in errors
-        print(f'Errors Distribution: {Counter(errors)}')
-        hist = wandb.Histogram(sequence=errors, num_bins=max(errors) + 1)
+        # create a matplotlib barplot of frequencies of integers in errors
+        error_counter, _ = plot_freq(errors, epoch) # saves the plot as a png file
+        print(f'Errors Distribution: {error_counter}')
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -172,9 +172,9 @@ def main(cfg: DictConfig):
         
         # log the errors
         wandb.log(
-            {"Errors_distribution": hist}
+            {"Errors_distribution": wandb.Image(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')},
+            step=epoch
         )
-
 
         for i in range(len(optimizer.param_groups)):
             wandb.log({"Learning_rate/group{i}": optimizer.param_groups[i]["lr"]}, step=epoch)
