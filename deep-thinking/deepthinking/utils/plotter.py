@@ -41,10 +41,7 @@ def plot_freq(errors: List[int], epoch: int):
 
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')
+    #plt.savefig(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')
     plt.close()
-
-    # wait for the plot to be saved. sleep for 3 seconds
-    time.sleep(3)
 
     return error_counter, fig

@@ -9,6 +9,7 @@
     October 2021
 """
 import wandb
+import PIL
 
 import json
 import logging
@@ -151,7 +152,7 @@ def main(cfg: DictConfig):
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
         # create a matplotlib barplot of frequencies of integers in errors
-        error_counter, _ = plot_freq(errors, epoch) # saves the plot as a png file
+        error_counter, fig = plot_freq(errors, epoch) # saves the plot as a png file
         print(f'Errors Distribution: {error_counter}')
 
         if best_val_acc > highest_val_acc_so_far:
@@ -170,9 +171,10 @@ def main(cfg: DictConfig):
                    "MAE/train_mae": train_mae, "Accuracy/train_elem_acc": train_elem_acc,
                    "Accuracy/train_seq_acc": train_seq_acc}, step=epoch)
         
-        # log the errors
+        # log the errors distribution
+        image  = PIL.Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
         wandb.log(
-            {"Errors_distribution": wandb.Image(f'/fsx/awesome/DPT/outputs/errors_{epoch}.png')},
+            {"Errors_distribution": wandb.Image(image)},
             step=epoch
         )
 
