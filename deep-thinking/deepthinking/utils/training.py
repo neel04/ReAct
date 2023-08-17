@@ -54,7 +54,7 @@ def get_output_for_prog_loss(inputs, max_iters, net):
 
     # Corrupt the thought tensor
     interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=2e-4, steps=10) # add a few small errors
-    interim_thought = interim_thought.detach()
+    interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
 
     # re-enable requires_grad=True for the parameters of out_head
     for param in output_head.parameters():
