@@ -96,7 +96,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
             total_elems += targets.numel()
 
     accuracy = 100.0 * corrects / total
-    elemwise_accuracy = int(100.0 * elemwise_corrects / total_elems)
+    elemwise_accuracy = int(100.0 * elemwise_corrects[-1].item() / total_elems)
 
     ret_acc = {}
     for ite in iters:
@@ -111,6 +111,7 @@ def test_default(net, testloader, iters, problem, device, extra_metrics):
         print(f'\nDEBUG: INCORRECT VAL/TEST PREDICTION: input: {incorrect_input} | output: {incorrect_output} | target: {incorrect_target}')
         return ret_acc, best_val_acc, best_val_iteration # for validation set
     else:
+        print(f'LOGGED TEST ACCURACY: {elemwise_accuracy} @ {max_iters} | elemwise_corrects: {elemwise_corrects} ')
         return ret_acc, elemwise_accuracy # for test set
 
 
