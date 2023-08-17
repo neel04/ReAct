@@ -150,9 +150,8 @@ def main(cfg: DictConfig):
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
-        hist = np.histogram(errors, bins=range(min(errors), max(errors) + 2))
-        print(f'Errors distribution: {hist}')
-        hist = wandb.Histogram(np_histogram=hist)
+        errors = [[e] for e in errors]
+        table = wandb.Table(data=errors, columns=["Errors"])
 
         if best_val_acc > highest_val_acc_so_far:
             best_so_far = True
@@ -169,8 +168,12 @@ def main(cfg: DictConfig):
         wandb.log({"Loss/loss": loss, "Accuracy/acc": acc, "Accuracy/val_acc": best_val_acc,
                    "MAE/train_mae": train_mae, "Accuracy/train_elem_acc": train_elem_acc,
                    "Accuracy/train_seq_acc": train_seq_acc}, step=epoch)
+        
+        # log the errors
+        wandb.log(
+            {"Errors_distribution": wandb.plot.histogram(table, "Errors", title="Errors Distribution")},
+        )
 
-        wandb.log({"Errors": hist})
 
         for i in range(len(optimizer.param_groups)):
             wandb.log({"Learning_rate/group{i}": optimizer.param_groups[i]["lr"]}, step=epoch)
