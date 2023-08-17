@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
+import io
+import time
 
-from typing import Tuple
 from collections import Counter
 from typing import List
 from PIL import Image
@@ -39,9 +40,15 @@ def plot_freq(errors: List[int], epoch: int) -> Tuple[Counter, Image.Image]:
     # Add a background color to the plot area
     fig.patch.set_facecolor('white')
 
-    # Save the figure to a PIL Image
-    pil_image = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
-
+    # Save the figure to a BytesIO object
+    image_stream = io.BytesIO()
+    plt.savefig(image_stream, format='png')
     plt.close()
+
+    # Give some time for the file to be written
+    time.sleep(1)  # Adjust the sleep duration as needed
+
+    # Convert the BytesIO object to a PIL Image
+    pil_image = Image.open(image_stream)
 
     return error_counter, pil_image
