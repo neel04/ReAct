@@ -174,7 +174,7 @@ def main(cfg: DictConfig):
         # log the errors distribution
         image  = PIL.Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
         wandb.log(
-            {"Errors_distribution": wandb.Image(image)},
+            {"Errors Distribution": wandb.Image(image)},
             step=epoch
         )
 
