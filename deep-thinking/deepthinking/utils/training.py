@@ -68,8 +68,10 @@ class ProgressiveLossGenerator:
 
         output_head = self.net.module.out_head
         self._disable_gradients(output_head)
-
+        # print norm of interim_thought
+        print(f'Norm before: {torch.norm(interim_thought)}')
         interim_thought, num_errors = self._corrupt_progress(interim_thought, output_head)
+        print(f'Norm After: {torch.norm(interim_thought)}')
 
         self._enable_gradients(output_head)
 
