@@ -1,13 +1,16 @@
 from typing import Tuple, List
+
 import torch
 import random
+import torch.optim as optim
 
 def corrupt_progress(
     input_tensor: torch.Tensor,
     out_head: torch.nn.Module,
     tgt_vocab_size: int = 3,
-    epsilon: float = 2e-4,
     steps: int = 5,
+    learning_rate: float = 1e-2,
+    weight_decay: float = 1e-5,
 ) -> Tuple[torch.Tensor, List[int]]:
     """
     Corrupts the given interim_thought using backpropagation steps.
@@ -18,8 +21,9 @@ def corrupt_progress(
         input (torch.Tensor): Input tensor to be perturbed. Can be batched.
         out_head (torch.nn.Module): Neural network head for output calculation.
         tgt_vocab_size (int, optional): Number of classes in the target vocabulary. Defaults to 2.
-        epsilon (float, optional): Step size for perturbation. Defaults to 2e-4.
         steps (int, optional): Number of backpropagation steps. Defaults to 5.
+        learning_rate (float, optional): Learning rate for optimizer. Defaults to 0.01.
+        weight_decay (float, optional): Weight decay for optimizer. Defaults to 1e-5.
 
     Returns:
         torch.Tensor: Perturbed thought after backpropagation steps.
@@ -42,33 +46,29 @@ def corrupt_progress(
     corrupted_output = og_output.clone()
 
     for i, indices in enumerate(corrupt_indices):
-		# TODO: This is a ugly hack
-		# Replace the corrupted bits with random bits, withing class range
-        corrupted_output[i, indices] = torch.Tensor(
-            [random.choices(range(0, tgt_vocab_size))] * n
-            ).reshape(-1).long().to(corrupted_output.device)
+        # Replace the corrupted bits with random bits within class range
+        corrupted_output[i, indices] = torch.randint(low=0, high=tgt_vocab_size, size=(n,), device=corrupted_output.device)
 
     target_output = torch.nn.functional.one_hot(corrupted_output.long(), num_classes=tgt_vocab_size).float()
 
-    # Define a loss function
-    loss_fn = torch.nn.CrossEntropyLoss(reduction='sum')
+    # Use AdamW optimizer
+    optimizer = optim.AdamW([vanilla_tensor], lr=learning_rate, weight_decay=weight_decay)
 
     for _ in range(steps):
         # Compute the original output
         original_output = torch.softmax(out_head(vanilla_tensor), dim=-1)
 
         # Compute the loss between the original output and the target output
-        loss = loss_fn(original_output, target_output)
+        loss = torch.nn.functional.cross_entropy(original_output, target_output, reduction='mean')
+
+        # Zero the gradients
+        optimizer.zero_grad()
 
         # Backpropagate to compute gradients
         loss.backward()
 
-        # Update vanilla_tensor using gradient descent
-        with torch.no_grad():
-            vanilla_tensor += epsilon * vanilla_tensor.grad.sign()
-
-        # Zero out the gradients for the next iteration
-        vanilla_tensor.grad.zero_()
+        # Update the tensor using optimizer
+        optimizer.step()
 
     perturbed_thought = vanilla_tensor.clone()
     perturbed_output = torch.softmax(out_head(perturbed_thought), dim=-1)

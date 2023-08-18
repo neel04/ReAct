@@ -34,14 +34,14 @@ class TrainingSetup:
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
     epsilon: float = 9e-3
+    steps: int = 7
 
-    def __init__(self, net, steps: int = 7):
+    def __init__(self, net):
         self.net = net
-        self.steps = steps
 
     def _corrupt_progress(self, interim_thought, output_head):
-        # Corrupt the thought tensor
-        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=self.epsilon, steps=self.steps)
+        # Corrupt the thought tensor. override defaults as needed
+        interim_thought, num_errors = corrupt_progress(interim_thought, output_head)
         interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
 
         return interim_thought, num_errors
@@ -55,22 +55,22 @@ class ProgressiveLossGenerator:
             param.requires_grad = True
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int]:
-        n = randrange(0, max_iters)
-        k = randrange(1, max_iters - n + 1)
+        n = randrange(0, max_iters) # n non-backpropped iterations
+        k = randrange(1, max_iters - n + 1) # k backpropped iterations to improve on the last n iteration
 
-        interim_thought = None
+        interim_thought = None # None condition remians if n == 0
 
         if n > 0:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
 
+        # Apply adversarial perturbation to the thought tensor
         output_head = self.net.module.out_head
         self._disable_gradients(output_head)
-
         interim_thought, num_errors = self._corrupt_progress(interim_thought, output_head)
-
         self._enable_gradients(output_head)
 
+        # Run for k iterations on the perturbed thought tensor
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
