@@ -79,13 +79,13 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
 
-        if max(num_errors) > 6 or len(set(num_errors)) < 3:
+        if max(num_errors) > 6 or len(set(num_errors)) < 4:
             ProgressiveLossGenerator.epsilon *= max(num_errors) - 2
 
         if min(num_errors) > 0:
             ProgressiveLossGenerator.epsilon /= min(num_errors) + 2
         
-        print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\n")
+        print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\n | min: {min(num_errors)} | max: {max(num_errors)} | len: {len(set(num_errors))}\n")
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
