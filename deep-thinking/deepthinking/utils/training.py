@@ -44,7 +44,7 @@ class ProgressiveLossGenerator:
         interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
 
         if max(num_errors) > 4: # if the number of errors is too high, increase the epsilon to (hopefully) reduce corruption
-            self.epsilon *= 5
+            self.epsilon *= max(num_errors) - 2
 
         return interim_thought, num_errors
 
