@@ -31,37 +31,51 @@ class TrainingSetup:
     max_iters: "Any"
     problem: "Any"
 
-def get_output_for_prog_loss(inputs, max_iters, net):
-    # get features from n iterations to use as input
-    n = randrange(0, max_iters)
-    # do k iterations using intermediate features as input
-    k = randrange(1, max_iters - n + 1)
+class ProgressiveLossGenerator:
+    """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
+    def __init__(self, net, epsilon: float = 9e-3, steps: int = 10):
+        self.net = net
+        self.epsilon = epsilon
+        self.steps = steps
 
-    if n > 0:
-        # noisy_iterations is a list of indices of iterations to add noise to
-        # it can be of length 0 (empty list), 1
-        #noisy_iteration = [randrange(0, n+1) for _ in range(randrange(0, 2))]
-        _, interim_thought = net(inputs, iters_to_do=n, interim_thought=None)
-        interim_thought = interim_thought.detach()
-    else:
+    def _corrupt_progress(self, interim_thought, output_head):
+        # Corrupt the thought tensor
+        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=self.epsilon, steps=self.steps)
+        interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
+
+        if num_errors > 4: # if the number of errors is too high, increase the epsilon to (hopefully) reduce corruption
+            self.epsilon *= 5
+
+        return interim_thought
+
+    def _disable_gradients(self, module):
+        for param in module.parameters():
+            param.requires_grad = False
+
+    def _enable_gradients(self, module):
+        for param in module.parameters():
+            param.requires_grad = True
+
+    def get_output(self, inputs, max_iters):
+        n = randrange(0, max_iters)
+        k = randrange(1, max_iters - n + 1)
+
         interim_thought = None
-    
-    output_head = net.module.out_head
 
-    # Set requires_grad=False for the parameters of out_head
-    for param in output_head.parameters():
-        param.requires_grad = False
+        if n > 0:
+            _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
+            interim_thought = interim_thought.detach()
 
-    # Corrupt the thought tensor
-    interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=9e-3, steps=10) # add a few small errors
-    interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
+        output_head = self.net.module.out_head
+        self._disable_gradients(output_head)
 
-    # re-enable requires_grad=True for the parameters of out_head
-    for param in output_head.parameters():
-        param.requires_grad = True
+        interim_thought = self._corrupt_progress(interim_thought, output_head)
 
-    outputs, _ = net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
-    return outputs, n+k, num_errors
+        self._enable_gradients(output_head)
+
+        outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
+
+        return outputs, n+k
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
@@ -88,6 +102,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     weight = torch.ones(3).to(device)
     weight[2] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weight)
+    prog_loss = ProgressiveLossGenerator(net)
 
     train_loss = 0
     correct = 0
@@ -121,7 +136,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
             # so we save time by setting it equal to 0).
             if alpha != 0:
-                outputs, steps, errors = get_output_for_prog_loss(inputs, max_iters, net)
+                outputs, steps, errors = prog_loss.get_output(inputs, max_iters, net)
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
