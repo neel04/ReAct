@@ -56,7 +56,7 @@ class ProgressiveLossGenerator:
         for param in module.parameters():
             param.requires_grad = True
 
-    def get_output(self, inputs, max_iters):
+    def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int]:
         n = randrange(0, max_iters)
         k = randrange(1, max_iters - n + 1)
 
@@ -136,7 +136,7 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
             # get progressive loss if alpha is not 0 (if it is 0, this loss term is not used
             # so we save time by setting it equal to 0).
             if alpha != 0:
-                outputs, steps, errors = prog_loss.get_output(inputs, max_iters, net)
+                outputs, steps, errors = prog_loss.get_output(inputs, max_iters)
                 outputs = outputs.view(outputs.size(0), outputs.size(1), -1).transpose(1, 2)
 
                 with accelerator.autocast():
