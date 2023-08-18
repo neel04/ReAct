@@ -46,7 +46,7 @@ class ProgressiveLossGenerator:
         if max(num_errors) > 4: # if the number of errors is too high, increase the epsilon to (hopefully) reduce corruption
             self.epsilon *= 5
 
-        return interim_thought
+        return interim_thought, num_errors
 
     def _disable_gradients(self, module):
         for param in module.parameters():
@@ -69,13 +69,13 @@ class ProgressiveLossGenerator:
         output_head = self.net.module.out_head
         self._disable_gradients(output_head)
 
-        interim_thought = self._corrupt_progress(interim_thought, output_head)
+        interim_thought, num_errors = self._corrupt_progress(interim_thought, output_head)
 
         self._enable_gradients(output_head)
 
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
-        return outputs, n+k
+        return outputs, n+k, num_errors
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
