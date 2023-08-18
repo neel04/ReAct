@@ -33,9 +33,10 @@ class TrainingSetup:
 
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
-    def __init__(self, net, epsilon: float = 9e-3, steps: int = 10):
+    epsilon: float = 9e-3
+
+    def __init__(self, net, steps: int = 10):
         self.net = net
-        self.epsilon = epsilon
         self.steps = steps
 
     def _corrupt_progress(self, interim_thought, output_head):
