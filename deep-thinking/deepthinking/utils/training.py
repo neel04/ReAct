@@ -76,20 +76,22 @@ class ProgressiveLossGenerator:
         return outputs, n+k, num_errors
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
-    if mode == "progressive":
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
+    loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
 
-        if max(num_errors) > 6 or len(set(num_errors)) < 4:
-            print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (*=) {max(num_errors)} \n')
-            ProgressiveLossGenerator.epsilon *= max(num_errors)
+    if len(num_errors) < 5:
+        # in this case, we got unlucky and batch didn't have corrupted examples as its stochastic
+        return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
-        if min(num_errors) > 0:
-            print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (/=) {min(num_errors) + 2} \n')
-            ProgressiveLossGenerator.epsilon /= min(num_errors) + 2
-        
-        print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\t | min: {min(num_errors)} | max: {max(num_errors)} | len: {len(set(num_errors))}\n")
-    else:
-        raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
+    if max(num_errors) > 6 or len(set(num_errors)) < 4:
+        print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (*=) {max(num_errors)} \n')
+        ProgressiveLossGenerator.epsilon *= max(num_errors)
+
+    if min(num_errors) > 0:
+        print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (/=) {min(num_errors) + 2} \n')
+        ProgressiveLossGenerator.epsilon /= min(num_errors) + 2
+    
+    print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\t | min: {min(num_errors)} | max: {max(num_errors)} | len: {len(set(num_errors))}\n")
+
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
 def train_progressive(net, loaders, train_setup, device, accelerator=None):

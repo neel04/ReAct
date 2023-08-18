@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 import torch
 import random
 
@@ -8,7 +8,7 @@ def corrupt_progress(
     tgt_vocab_size: int = 3,
     epsilon: float = 2e-4,
     steps: int = 5,
-) -> Tuple[torch.Tensor, int]:
+) -> Tuple[torch.Tensor, List[int]]:
     """
     Corrupts the given interim_thought using backpropagation steps.
     Few GD steps wouldn't converge, giving us a slightly more corrupted version
@@ -23,7 +23,7 @@ def corrupt_progress(
 
     Returns:
         torch.Tensor: Perturbed thought after backpropagation steps.
-        int: Number of errors generated during perturbation.
+        List: Number of errors generated during perturbation.
     """
     if input_tensor is None:
         return input_tensor, [0]
