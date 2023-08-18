@@ -43,9 +43,6 @@ class ProgressiveLossGenerator:
         interim_thought, num_errors = corrupt_progress(interim_thought, output_head, epsilon=self.epsilon, steps=self.steps)
         interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
 
-        if max(num_errors) > 4: # if the number of errors is too high, increase the epsilon to (hopefully) reduce corruption
-            self.epsilon *= max(num_errors) - 2
-
         return interim_thought, num_errors
 
     def _disable_gradients(self, module):
@@ -68,10 +65,8 @@ class ProgressiveLossGenerator:
 
         output_head = self.net.module.out_head
         self._disable_gradients(output_head)
-        # print norm of interim_thought
-        print(f'Norm before: {torch.norm(interim_thought)}')
+
         interim_thought, num_errors = self._corrupt_progress(interim_thought, output_head)
-        print(f'Norm After: {torch.norm(interim_thought)}')
 
         self._enable_gradients(output_head)
 
@@ -82,6 +77,10 @@ class ProgressiveLossGenerator:
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
+
+        if max(num_errors) > 4:
+            ProgressiveLossGenerator.epsilon *= max(num_errors) - 2
+            print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\n")
     else:
         raise ValueError(f"{ic.format()}: train_{mode}() not implemented.")
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
