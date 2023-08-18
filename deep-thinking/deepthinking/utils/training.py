@@ -79,7 +79,7 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
     if mode == "progressive":
         loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
 
-        if max(num_errors) > 6:
+        if max(num_errors) > 6 or len(set(num_errors)) < 3:
             ProgressiveLossGenerator.epsilon *= max(num_errors) - 2
 
         if min(num_errors) > 0:
