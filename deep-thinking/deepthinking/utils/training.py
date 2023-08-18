@@ -86,7 +86,7 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
         print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (*=) {max(num_errors)} \n')
         ProgressiveLossGenerator.epsilon *= max(num_errors)
 
-    if min(num_errors) > 0:
+    elif min(num_errors) > 0:
         print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (/=) {min(num_errors) + 2} \n')
         ProgressiveLossGenerator.epsilon /= min(num_errors) + 2
     
