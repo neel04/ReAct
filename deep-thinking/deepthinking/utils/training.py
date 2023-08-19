@@ -79,8 +79,8 @@ def train(net, loaders, mode, train_setup, device, acc_obj=None):
 
     num_errors_dict = {i: num_errors.count(i) for i in range(0, max(num_errors) + 1)} # count the number of errors generated
 
-    if num_errors_dict[0] > num_errors_dict[1] + num_errors_dict[2]:
-        ProgressiveLossGenerator.learning_rate *= 2
+    if num_errors_dict[0] > sum(num_errors_dict[i] for i in range(1, max(num_errors) + 1)):
+        ProgressiveLossGenerator.learning_rate *= 1.5
 
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
