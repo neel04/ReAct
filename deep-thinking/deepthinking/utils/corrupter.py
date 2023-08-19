@@ -33,7 +33,7 @@ def corrupt_progress(
         return input_tensor, [0]
 
     # Make sure input requires gradient
-    n = 3  # number of bits to corrupt
+    n = 2  # number of bits to corrupt
     vanilla_tensor = input_tensor.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
