@@ -8,8 +8,8 @@ def corrupt_progress(
     input_tensor: torch.Tensor,
     out_head: torch.nn.Module,
     tgt_vocab_size: int = 3,
-    steps: int = 5,
-    learning_rate: float = 1e-0,
+    steps: int = 7,
+    learning_rate: float = 2e-0,
     weight_decay: float = 1e-5,
 ) -> Tuple[torch.Tensor, List[int]]:
     """
@@ -33,7 +33,7 @@ def corrupt_progress(
         return input_tensor, [0]
 
     # Make sure input requires gradient
-    n = 2  # number of bits to corrupt
+    n = 3  # number of bits to corrupt
     vanilla_tensor = input_tensor.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
