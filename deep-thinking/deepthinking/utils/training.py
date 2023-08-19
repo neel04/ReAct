@@ -34,13 +34,14 @@ class TrainingSetup:
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
     steps: int = 7
+    learning_rate: float = 2
 
     def __init__(self, net):
         self.net = net
 
     def _corrupt_progress(self, interim_thought, output_head):
         # Corrupt the thought tensor. override defaults as needed
-        interim_thought, num_errors = corrupt_progress(interim_thought, output_head)
+        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, learning_rate=self.learning_rate, steps=self.steps)
         interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
 
         return interim_thought, num_errors
