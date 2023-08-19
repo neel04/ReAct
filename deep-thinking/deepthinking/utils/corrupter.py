@@ -9,7 +9,7 @@ def corrupt_progress(
     out_head: torch.nn.Module,
     tgt_vocab_size: int = 3,
     steps: int = 5,
-    learning_rate: float = 1e-2,
+    learning_rate: float = 1e-0,
     weight_decay: float = 1e-5,
 ) -> Tuple[torch.Tensor, List[int]]:
     """

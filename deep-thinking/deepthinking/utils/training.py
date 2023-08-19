@@ -33,7 +33,6 @@ class TrainingSetup:
 
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
-    epsilon: float = 9e-3
     steps: int = 7
 
     def __init__(self, net):
@@ -77,20 +76,6 @@ class ProgressiveLossGenerator:
 
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
-
-    if len(num_errors) < 5:
-        # in this case, we got unlucky and batch didn't have corrupted examples as its stochastic
-        return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
-
-    if max(num_errors) > 6 or len(set(num_errors)) < 4:
-        print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (/=) {2} \n')
-        ProgressiveLossGenerator.epsilon /= 2
-
-    elif min(num_errors) > 0:
-        print(f'\nEpsilon update: {ProgressiveLossGenerator.epsilon} (*=) {3} \n')
-        ProgressiveLossGenerator.epsilon /= 3
-    
-    print(f"\nProgressiveLossGenerator.epsilon: {ProgressiveLossGenerator.epsilon}\t | min: {min(num_errors)} | max: {max(num_errors)} | len: {len(set(num_errors))}\n")
 
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
