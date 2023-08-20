@@ -170,6 +170,3 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
     return (train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), 
             sum(train_seq_acc)/len(train_seq_acc), accelerator, errors)
     # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, accelerator, errors
-
-  git config --global user.email "neelgupta04@outlook.com"
-git config --global user.name "nee04"

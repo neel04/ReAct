@@ -81,6 +81,37 @@ def corrupt_progress(
 
     return perturbed_thought, errors_generated
 
+class Adversarial_Perturbation:
+    """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
+    steps: int = 7
+    learning_rate: float = 2
+
+    def __init__(self, net):
+        self.net = net
+
+    def _corrupt_progress(self, interim_thought: torch.Tensor, output_head: torch.nn.Module) -> Tuple[torch.Tensor, List[int]]:
+        # Corrupt the thought tensor. override defaults as needed
+        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, learning_rate=self.learning_rate, steps=self.steps)
+        interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
+
+        return interim_thought, num_errors
+
+    def _disable_gradients(self, module):
+        for param in module.parameters():
+            param.requires_grad = False
+
+    def _enable_gradients(self, module):
+        for param in module.parameters():
+            param.requires_grad = True
+    
+    def perturb(self, input_tensor: torch.Tensor) -> Tuple[torch.Tensor, List[int]]:
+        output_head = self.net.out_head
+        self._disable_gradients(output_head)
+        interim_thought, num_errors = self._corrupt_progress(input_tensor, output_head)
+        self._enable_gradients(output_head)
+
+        return interim_thought, num_errors
+
 if __name__ == "__main__":
     # Example usage
     interim_thought = torch.randn(96, 96)
