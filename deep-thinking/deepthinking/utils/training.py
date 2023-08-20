@@ -11,7 +11,7 @@
 
 from dataclasses import dataclass
 from random import randrange, choices
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 
 import torch
 from icecream import ic
@@ -33,44 +33,22 @@ class TrainingSetup:
 
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
-    steps: int = 7
-    learning_rate: float = 2
-
     def __init__(self, net):
         self.net = net
+        self.net.train()
 
-    def _corrupt_progress(self, interim_thought, output_head):
-        # Corrupt the thought tensor. override defaults as needed
-        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, learning_rate=self.learning_rate, steps=self.steps)
-        interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
-
-        return interim_thought, num_errors
-
-    def _disable_gradients(self, module):
-        for param in module.parameters():
-            param.requires_grad = False
-
-    def _enable_gradients(self, module):
-        for param in module.parameters():
-            param.requires_grad = True
-
-    def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int]:
+    def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
         n = randrange(0, max_iters) # n non-backpropped iterations
         k = randrange(1, max_iters - n + 1) # k backpropped iterations to improve on the last n iteration
 
         interim_thought = None # None condition remians if n == 0
 
         if n > 0:
-            _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
+            iters_to_perturb = choices(range(1, n + 1), k=randrange(1, 3))
+            _, interim_thought, num_errors = self.net(inputs, iters_to_do=n, interim_thought=None, perturb_iters=iters_to_perturb)
             interim_thought = interim_thought.detach()
 
-        # Apply adversarial perturbation to the thought tensor
-        output_head = self.net.module.out_head
-        self._disable_gradients(output_head)
-        interim_thought, num_errors = self._corrupt_progress(interim_thought, output_head)
-        self._enable_gradients(output_head)
-
-        # Run for k iterations on the perturbed thought tensor
+        # Run for k iterations
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
@@ -78,11 +56,9 @@ class ProgressiveLossGenerator:
 def train(net, loaders, mode, train_setup, device, acc_obj=None):
     loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
 
-    num_errors_dict = {i: num_errors.count(i) for i in range(0, max(num_errors) + 1)} # count the number of errors generated
-
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
-def train_progressive(net, loaders, train_setup, device, accelerator=None):
+def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accelerator):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.backends.cuda.enable_flash_sdp(False)
@@ -194,3 +170,6 @@ def train_progressive(net, loaders, train_setup, device, accelerator=None):
     return (train_loss, acc, sum(train_metric)/len(train_metric), sum(train_elem_acc)/len(train_elem_acc), 
             sum(train_seq_acc)/len(train_seq_acc), accelerator, errors)
     # train loss, accuracy, train MAE, train elementwise accuracy, train sequence accuracy, accelerator, errors
+
+  git config --global user.email "neelgupta04@outlook.com"
+git config --global user.name "nee04"
