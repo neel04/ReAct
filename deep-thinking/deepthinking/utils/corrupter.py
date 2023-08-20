@@ -86,8 +86,8 @@ class Adversarial_Perturbation:
     steps: int = 7
     learning_rate: float = 2
 
-    def __init__(self, net):
-        self.net = net
+    def __init__(self, head):
+        self.head = head
 
     def _corrupt_progress(self, interim_thought: torch.Tensor, output_head: torch.nn.Module) -> Tuple[torch.Tensor, List[int]]:
         # Corrupt the thought tensor. override defaults as needed
@@ -105,10 +105,9 @@ class Adversarial_Perturbation:
             param.requires_grad = True
     
     def perturb(self, input_tensor: torch.Tensor) -> Tuple[torch.Tensor, List[int]]:
-        output_head = self.net.out_head
-        self._disable_gradients(output_head)
-        interim_thought, num_errors = self._corrupt_progress(input_tensor, output_head)
-        self._enable_gradients(output_head)
+        self._disable_gradients(self.head)
+        interim_thought, num_errors = self._corrupt_progress(input_tensor, self.head)
+        self._enable_gradients(self.head)
 
         return interim_thought, num_errors
 

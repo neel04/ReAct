@@ -9,7 +9,7 @@ train_data: 50_000
 model:
   model_path:
   width: 384
-  max_iters: 25
+  max_iters: 10
   test_iterations:
-    low: 25
-    high: 35
+    low: 5
+    high: 10

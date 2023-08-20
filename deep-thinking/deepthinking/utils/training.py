@@ -42,6 +42,7 @@ class ProgressiveLossGenerator:
         k = randrange(1, max_iters - n + 1) # k backpropped iterations to improve on the last n iteration
 
         interim_thought = None # None condition remians if n == 0
+        num_errors = [0] # empty default for logging purposes
 
         if n > 0:
             iters_to_perturb = choices(range(1, n + 1), k=randrange(1, 3))
