@@ -98,7 +98,7 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
             # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
             # so we save time by settign it equal to 0).
             with torch.backends.cuda.sdp_kernel(enable_flash=False) as disable:
-                outputs_max_iters, _, _ = net(inputs, iters_to_do=max_iters, perturb_iters=randrange(1, max_iters+1)) #TODO: Remove aggressive perturbation
+                outputs_max_iters, _, _ = net(inputs, iters_to_do=max_iters, perturb_iters=[randrange(1, max_iters+1)]) #TODO: Remove aggressive perturbation
 
             if alpha != 1:
                 outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
