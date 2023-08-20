@@ -18,7 +18,6 @@ from icecream import ic
 from tqdm.auto import tqdm
 
 from deepthinking.utils.testing import get_predicted
-from deepthinking.utils.corrupter import corrupt_progress
 
 @dataclass
 class TrainingSetup:
@@ -32,7 +31,7 @@ class TrainingSetup:
     problem: "Any"
 
 class ProgressiveLossGenerator:
-    """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
+    """Generates progressive loss for training, can be modified for adversarial perturbation to the thought tensor if needed"""
     def __init__(self, net):
         self.net = net
         self.net.train()
@@ -99,7 +98,7 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
             # get fully unrolled loss if alpha is not 1 (if it is 1, this loss term is not used
             # so we save time by settign it equal to 0).
             with torch.backends.cuda.sdp_kernel(enable_flash=False) as disable:
-                outputs_max_iters, _, _ = net(inputs, iters_to_do=max_iters)
+                outputs_max_iters, _, _ = net(inputs, iters_to_do=max_iters, perturb_iters=randrange(1, max_iters+1)) #TODO: Remove aggressive perturbation
 
             if alpha != 1:
                 outputs_max_iters = outputs_max_iters.view(outputs_max_iters.size(0),
@@ -123,11 +122,6 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
                     loss_progressive = loss_progressive * torch.tensor([weight_dict[steps]]).to(device)
             else:
                 loss_progressive = torch.zeros_like(targets).float()
-            if problem == "mazes":
-                loss_max_iters = (loss_max_iters * mask)
-                loss_max_iters = loss_max_iters[mask > 0]
-                loss_progressive = (loss_progressive * mask)
-                loss_progressive = loss_progressive[mask > 0]
 
             loss_max_iters_mean = loss_max_iters.mean()
             loss_progressive_mean = loss_progressive.mean()
