@@ -44,7 +44,8 @@ class ProgressiveLossGenerator:
         num_errors = [0] # empty default for logging purposes
 
         if n > 0:
-            iters_to_perturb = choices(range(1, n + 1), k=randrange(1, 3))
+            #iters_to_perturb = choices(range(1, n + 1), k=randrange(1, 3))
+            iters_to_perturb = [randrange(1, k + 1)]
             _, interim_thought, num_errors = self.net(inputs, iters_to_do=n, interim_thought=None, perturb_iters=iters_to_perturb)
             interim_thought = interim_thought.detach()
 
