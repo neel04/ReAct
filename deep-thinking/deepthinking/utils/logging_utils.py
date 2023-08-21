@@ -1,5 +1,5 @@
 """ logging_utils.py
-    Utility functions for logging experiments to CometML and TensorBoard
+    Utility functions for logging experiments to CometML
 
     Collaboratively developed
     by Avi Schwarzschild, Eitan Borgnia,
