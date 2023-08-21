@@ -28,7 +28,6 @@ export OMP_NUM_THREADS=2
 
 cd /fsx/awesome
 echo "Starting training" 
-#singularity exec --nv -B /fsx/awesome:/fsx/awesome singularity_base_container.sif ipython /fsx/awesome/DPT/DeepThinking.ipynb
 ipython /fsx/awesome/DPT/DeepThinking.ipynb
 echo "All Commands executed"
 exit 0
