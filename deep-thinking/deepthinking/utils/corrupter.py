@@ -33,7 +33,7 @@ def corrupt_progress(
         return input_tensor, [0]
 
     # Make sure input requires gradient
-    n = 4  # number of bits to corrupt
+    n = 3  # number of bits to corrupt
     vanilla_tensor = input_tensor.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
@@ -84,7 +84,7 @@ def corrupt_progress(
 class Adversarial_Perturbation:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
     steps: int = 7
-    learning_rate: float = 2
+    learning_rate: float = 2.5
 
     def __init__(self, head):
         self.head = head
