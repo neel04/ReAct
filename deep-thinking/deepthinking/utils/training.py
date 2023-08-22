@@ -50,7 +50,7 @@ class ProgressiveLossGenerator:
             interim_thought = interim_thought.detach()
 
         # Run for k iterations
-        outputs, _, num_errors = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
+        outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
 
