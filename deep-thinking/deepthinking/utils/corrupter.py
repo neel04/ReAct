@@ -15,7 +15,7 @@ def corrupt_progress(
     """
     Corrupts the given interim_thought using backpropagation steps.
     Few GD steps wouldn't converge, giving us a slightly more corrupted version
-    than what the GD process would have targeted towards. Saves time - 10ms on a T4
+    than what the GD process would have targeted towards. Saves time - 1000ms on a T4
 
     Args:
         input (torch.Tensor): Input tensor to be perturbed. Can be batched.
