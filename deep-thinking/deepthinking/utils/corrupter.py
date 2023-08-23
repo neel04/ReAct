@@ -83,8 +83,8 @@ def corrupt_progress(
 
 class Adversarial_Perturbation:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
-    steps: int = 7
-    learning_rate: float = 2.5
+    steps: int = 10
+    learning_rate: float = 4
 
     def __init__(self, head):
         self.head = head
