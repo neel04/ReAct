@@ -9,8 +9,8 @@ def corrupt_progress(
     out_head: torch.nn.Module,
     tgt_vocab_size: int = 3,
     steps: int = 7,
-    learning_rate: float = 2e-0,
-    weight_decay: float = 1e-5,
+    learning_rate: float = 10,
+    weight_decay: float = 1e-7,
 ) -> Tuple[torch.Tensor, List[int]]:
     """
     Corrupts the given interim_thought using backpropagation steps.
@@ -33,7 +33,7 @@ def corrupt_progress(
         return input_tensor, [0]
 
     # Make sure input requires gradient
-    n = 3  # number of bits to corrupt
+    n = 4  # number of bits to corrupt
     vanilla_tensor = input_tensor.detach().clone()
     vanilla_tensor.requires_grad = True
     out_head.requires_grad = False
@@ -83,18 +83,18 @@ def corrupt_progress(
 
 class Adversarial_Perturbation:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
-    steps: int = 10
-    learning_rate: float = 4
+    steps: int = 7
+    learning_rate: float = 10
 
-    def __init__(self, head):
+    def __init__(self, head: torch.nn.Module):
         self.head = head
 
     def _corrupt_progress(self, interim_thought: torch.Tensor, output_head: torch.nn.Module) -> Tuple[torch.Tensor, List[int]]:
         # Corrupt the thought tensor. override defaults as needed
-        interim_thought, num_errors = corrupt_progress(interim_thought, output_head, learning_rate=self.learning_rate, steps=self.steps)
-        interim_thought = interim_thought.detach() if interim_thought is not None else interim_thought
+        perturbed_thought, num_errors = corrupt_progress(interim_thought, output_head, learning_rate=self.learning_rate, steps=self.steps)
+        perturbed_thought = perturbed_thought.detach() if perturbed_thought is not None else perturbed_thought
 
-        return interim_thought, num_errors
+        return perturbed_thought, num_errors
 
     def _disable_gradients(self, module):
         for param in module.parameters():
