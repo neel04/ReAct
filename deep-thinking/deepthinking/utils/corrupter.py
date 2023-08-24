@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import Tuple, List
 
 import torch
@@ -104,10 +105,23 @@ class Adversarial_Perturbation:
         for param in module.parameters():
             param.requires_grad = True
     
+    def update_lr(self, num_errors: List[int]) -> None:
+        # If the number of errors generated is too low, increase the learning rate or vice versa
+        counter = Counter(num_errors)
+
+        if counter[0] > counter[1] + counter[2]:
+            self.learning_rate *= 1.5
+            print(f'\n--> Perturber LR: {self.learning_rate}\n')
+        elif counter[0] < counter[2]:
+            self.learning_rate *= 0.5
+            print(f'\n--> Perturber LR: {self.learning_rate}\n')
+    
     def perturb(self, input_tensor: torch.Tensor) -> Tuple[torch.Tensor, List[int]]:
         self._disable_gradients(self.head)
         interim_thought, num_errors = self._corrupt_progress(input_tensor, self.head)
         self._enable_gradients(self.head)
+
+        self.update_lr(num_errors) # update learning rate if needed
 
         return interim_thought, num_errors
 
