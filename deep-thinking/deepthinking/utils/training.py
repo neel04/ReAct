@@ -9,6 +9,7 @@
     October 2021
 """
 
+from collections import Counter
 from dataclasses import dataclass
 from random import randrange, choices
 from typing import Tuple, Any, List
@@ -33,9 +34,11 @@ class TrainingSetup:
 
 class ProgressiveLossGenerator:
     """Generates progressive loss for training, can be modified for adversarial perturbation to the thought tensor if needed"""
+    lr: float = 25
+
     def __init__(self, net):
         self.net = net
-        self.perturber = Adversarial_Perturbation(net.module.out_head)
+        self.perturber = Adversarial_Perturbation(net.module.out_head, self.lr)
         self.net.train()
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
@@ -156,6 +159,11 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
 
         correct += torch.eq(targets, predicted).all().item()
         total += targets.size(0)
+    
+    num_errors = Counter(errors)
+
+    if num_errors[0] > num_errors[1]: # update if less errors are generated`
+        ProgressiveLossGenerator.lr *= 1.5
     
     print(f'\nSample input: {trainloader.dataset.decode(inputs[0])} | Sample pred: {trainloader.dataset.decode(predicted[0])} | Sample answer: {trainloader.dataset.decode(targets[0])}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")

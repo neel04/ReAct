@@ -87,8 +87,9 @@ class Adversarial_Perturbation:
     steps: int = 7
     learning_rate: float = 25
 
-    def __init__(self, head: torch.nn.Module):
+    def __init__(self, head: torch.nn.Module, learning_rate: float):
         self.head = head
+        self.learning_rate = learning_rate
 
     def _corrupt_progress(self, interim_thought: torch.Tensor, output_head: torch.nn.Module) -> Tuple[torch.Tensor, List[int]]:
         # Corrupt the thought tensor. override defaults as needed
