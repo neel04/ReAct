@@ -35,7 +35,7 @@ class ProgressiveLossGenerator:
     """Generates progressive loss for training, can be modified for adversarial perturbation to the thought tensor if needed"""
     def __init__(self, net):
         self.net = net
-        self.perturber = Adversarial_Perturbation(net.out_head)
+        self.perturber = Adversarial_Perturbation(net.module.out_head)
         self.net.train()
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
