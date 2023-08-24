@@ -48,7 +48,8 @@ class ProgressiveLossGenerator:
         if n > 0:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
-        elif n > 4:
+
+        if n > 4:
             # Run perturbation
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought, num_errors = self.perturber.perturb(interim_thought.detach())
