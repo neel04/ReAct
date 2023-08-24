@@ -17,6 +17,7 @@ import torch
 from icecream import ic
 from tqdm.auto import tqdm
 
+from deepthinking.utils.corrupter import Adversarial_Perturbation
 from deepthinking.utils.testing import get_predicted
 
 @dataclass
@@ -34,6 +35,7 @@ class ProgressiveLossGenerator:
     """Generates progressive loss for training, can be modified for adversarial perturbation to the thought tensor if needed"""
     def __init__(self, net):
         self.net = net
+        self.perturber = Adversarial_Perturbation(net.out_head)
         self.net.train()
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
@@ -44,12 +46,14 @@ class ProgressiveLossGenerator:
         num_errors = [0] # empty default for logging purposes
 
         if n > 0:
-            #iters_to_perturb = choices(range(1, n + 1), k=randrange(1, 3))
-            iters_to_perturb = [randrange(1, k + 1)]
-            _, interim_thought, num_errors = self.net(inputs, iters_to_do=n, interim_thought=None, perturb_iters=iters_to_perturb)
+            _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
+        elif n > 4:
+            # Run perturbation
+            _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
+            interim_thought, num_errors = self.perturber.perturb(interim_thought.detach())
 
-        # Run for k iterations
+        # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors

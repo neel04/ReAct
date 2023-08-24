@@ -9,13 +9,12 @@
     October 2021
 """
 import wandb
-import PIL
 
 import json
 import logging
 import os
 import sys
-from collections import OrderedDict, Counter
+from collections import OrderedDict
 
 import hydra
 import numpy as np

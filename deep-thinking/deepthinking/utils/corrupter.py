@@ -85,7 +85,7 @@ def corrupt_progress(
 class Adversarial_Perturbation:
     """Generates progressive loss for training, and applies adversarial perturbation to the thought tensor"""
     steps: int = 7
-    learning_rate: float = 10
+    learning_rate: float = 25
 
     def __init__(self, head: torch.nn.Module):
         self.head = head
