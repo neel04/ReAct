@@ -51,7 +51,6 @@ class ProgressiveLossGenerator:
 
         if n > 4:
             # Run perturbation
-            _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought, num_errors = self.perturber.perturb(interim_thought.detach())
 
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
