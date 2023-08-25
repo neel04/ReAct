@@ -36,10 +36,10 @@ class ProgressiveLossGenerator:
     """Generates progressive loss for training, can be modified for adversarial perturbation to the thought tensor if needed"""
     lr: float = 25
 
-    def __init__(self, net):
+    def __init__(self, net: torch.nn.Module, epoch: int):
         self.net = net
+        self.epoch = epoch
         self.perturber = Adversarial_Perturbation(net.module.out_head, self.lr)
-        self.net.train()
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
         n = randrange(0, max_iters) # n non-backpropped iterations
@@ -52,21 +52,20 @@ class ProgressiveLossGenerator:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
 
-        if n > 4:
-            # Run perturbation
-            interim_thought, num_errors = self.perturber.perturb(interim_thought.detach())
+        if n > 5 and self.epoch > 70:
+            interim_thought, num_errors = self.perturber.perturb(interim_thought) # Run perturbation
 
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
 
-def train(net, loaders, mode, train_setup, device, acc_obj=None):
-    loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj)
+def train(net, loaders, mode, train_setup, device, epoch, acc_obj=None):
+    loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors = train_progressive(net, loaders, train_setup, device, acc_obj, epoch)
 
     return loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, num_errors
 
-def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accelerator):
+def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accelerator, epoch):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.backends.cuda.enable_flash_sdp(False)
@@ -84,7 +83,7 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
     weight = torch.ones(3).to(device)
     weight[2] = 0.2
     criterion = torch.nn.CrossEntropyLoss(reduction='none', weight=weight)
-    prog_loss = ProgressiveLossGenerator(net)
+    prog_loss = ProgressiveLossGenerator(net, epoch)
 
     train_loss = 0
     correct = 0

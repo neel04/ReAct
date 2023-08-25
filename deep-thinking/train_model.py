@@ -146,7 +146,7 @@ def main(cfg: DictConfig):
             i,o = next(iter(trainloader)) # get a random sample for sanity check
             print(f'\nBound Sample: {i[0]} | {o[0]}')
 
-        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, errors = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, accelerator)
+        loss, acc, train_mae, train_elem_acc, train_seq_acc, accelerator, errors = dt.train(net, loaders, cfg.problem.hyp.train_mode, train_setup, device, epoch, accelerator)
         val_acc, best_val_acc, best_val_it = dt.test(net, [loaders["val"]], cfg.problem.hyp.test_mode, [cfg.problem.model.max_iters],
                           cfg.problem.name, device, extra_metrics=True) #TODO: [0][cfg.problem.model.max_iters]
 
