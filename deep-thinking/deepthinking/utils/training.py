@@ -52,7 +52,7 @@ class ProgressiveLossGenerator:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
 
-        if n > 5 and self.epoch > 70:
+        if n > 5 and self.epoch > 100:
             interim_thought, num_errors = self.perturber.perturb(interim_thought) # Run perturbation
 
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
@@ -161,8 +161,9 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
     
     num_errors = Counter(errors)
 
-    if num_errors[0] > num_errors[1]: # update if less errors are generated`
-        ProgressiveLossGenerator.lr *= 1.25
+    if num_errors[0] > num_errors[1] and epoch > 100: # update if less errors are generated
+        ProgressiveLossGenerator.lr *= 1.05
+        print(f'Increasing lr to {ProgressiveLossGenerator.lr}')
     
     print(f'\nSample input: {trainloader.dataset.decode(inputs[0])} | Sample pred: {trainloader.dataset.decode(predicted[0])} | Sample answer: {trainloader.dataset.decode(targets[0])}')
     print(f"\n\nTrain metric (MAE): {(sum(train_metric)/len(train_metric)).item()}\n")
