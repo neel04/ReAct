@@ -161,7 +161,7 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
     
     num_errors = Counter(errors)
 
-    if num_errors[0] > num_errors[1] and epoch > 100: # update if less errors are generated
+    if num_errors[0] > (num_errors[1] / 2) and epoch > 100: # update if less errors are generated
         ProgressiveLossGenerator.lr *= 1.05
         print(f'Increasing lr to {ProgressiveLossGenerator.lr}')
     
