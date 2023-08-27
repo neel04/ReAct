@@ -39,7 +39,7 @@ class ProgressiveLossGenerator:
     def __init__(self, net: torch.nn.Module, epoch: int):
         self.net = net
         self.epoch = epoch
-        self.perturber = Adversarial_Perturbation(net.module.out_head, self.lr)
+        self.perturber = Adversarial_Perturbation(net.modules.out_head, self.lr)
 
     def get_output(self, inputs: torch.Tensor, max_iters: int) -> Tuple[torch.Tensor, int, List[int]]:
         n = randrange(0, max_iters) # n non-backpropped iterations
