@@ -52,11 +52,15 @@ class ProgressiveLossGenerator:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
 
-        if n > 5 and self.epoch > 100:
+        # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
+        outputs, interim_thought = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
+        
+        if n + k > (max_iters - 2) and self.epoch > 100:
+            # Roughly 50% of batched come under n + k > (max_iters - 2) condition for max_iters = 10
+            J = randrange(1, max_iters - n - k + 2) # J iterations to fix the perturbed errors
             interim_thought, num_errors = self.perturber.perturb(interim_thought) # Run perturbation
 
-        # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
-        outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
+            outputs, _ = self.net(inputs, iters_elapsed=n+k, iters_to_do=J, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
 
@@ -161,7 +165,7 @@ def train_progressive(net: torch.nn.Module, loaders, train_setup, device, accele
     
     num_errors = Counter(errors)
 
-    if num_errors[0] > (num_errors[1] / 2) and epoch > 100: # update if less errors are generated
+    if num_errors[0] > (num_errors[1] / 2) and epoch > 100 and len(num_errors.keys()) > 1: # update if less errors are generated
         ProgressiveLossGenerator.lr *= 1.05
         print(f'Increasing lr to {ProgressiveLossGenerator.lr}')
     
