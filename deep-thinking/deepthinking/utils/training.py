@@ -55,7 +55,7 @@ class ProgressiveLossGenerator:
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
         outputs, interim_thought = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
         
-        if n + k > (max_iters - 2) and self.epoch > 1:
+        if n + k > (max_iters - 2) and self.epoch > 100:
             # Roughly 50% of batched come under n + k > (max_iters - 2) condition for max_iters = 10
             J = randrange(1, max_iters - n - k + 2) # J iterations to fix the perturbed errors
             interim_thought, num_errors = self.perturber.perturb(interim_thought) # Run perturbation
