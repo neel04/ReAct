@@ -55,16 +55,15 @@ class ProgressiveLossGenerator:
         num_errors = [0] # empty default for logging purposes
 
         # Iteration priming
-        p = 0.00
+        p = 0.05
 
-        if choices([True, False], [p, 1 - p])[0]:
-            # Run the net for anywhere between max_iters and 2.5 * max_iters iterations
-            _, interim_thought = self.net(inputs, iters_to_do=randrange(max_iters, int(1.5 * max_iters)))
-            interim_thought = interim_thought.detach()
+        with torch.no_grad():
+            if choices([True, False], [p, 1 - p])[0]:
+                # Run the net for anywhere between max_iters and 2.5 * max_iters iterations
+                _, interim_thought = self.net(inputs, iters_to_do=randrange(max_iters, int(1.5 * max_iters)))
 
-        elif n > 0:
-            _, interim_thought = self.net(inputs, iters_to_do=n)
-            interim_thought = interim_thought.detach()
+            elif n > 0:
+                _, interim_thought = self.net(inputs, iters_to_do=n)
         
         # Adversarial perturbation
         if n > 5 and self.epoch > 100:
