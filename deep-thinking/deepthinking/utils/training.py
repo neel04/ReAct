@@ -55,7 +55,7 @@ class ProgressiveLossGenerator:
         num_errors = [0] # empty default for logging purposes
 
         # Iteration priming
-        p = 0.05
+        p = 0.00
 
         if choices([True, False], [p, 1 - p])[0]:
             # Run the net for anywhere between max_iters and 2.5 * max_iters iterations
