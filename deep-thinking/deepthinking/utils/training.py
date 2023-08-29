@@ -54,15 +54,24 @@ class ProgressiveLossGenerator:
         interim_thought = None # None condition remians if n == 0
         num_errors = [0] # empty default for logging purposes
 
+        # Non backpropped iterations
         if n > 0:
             _, interim_thought = self.net(inputs, iters_to_do=n, interim_thought=None)
             interim_thought = interim_thought.detach()
-
+        
+        # Adversarial perturbation
         if n > 5 and self.epoch > 100:
             interim_thought, num_errors = self.perturber.perturb(interim_thought) # Run perturbation
 
-        # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
-        outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
+        # Iteration priming
+        p = 0.05
+        if choices([True, False], [p, 1 - p])[0]:
+            # Run the net for anywhere between max_iters and 2.5 * max_iters iterations
+            # This is to prime the net to be able to handle longer sequences
+            outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=randrange(max_iters, int(1.5 * max_iters)), interim_thought=interim_thought)
+        else:
+            # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
+            outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
 
         return outputs, n+k, num_errors
 
