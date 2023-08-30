@@ -94,7 +94,7 @@ def get_optimizer(optim_args, model_args, net, state_dict, accelerator):
         iters = 1
         all_params = [{"params": base_params}]
 
-    wd = 6e-3 # weight decay | default: 2e-3
+    wd = 3e-3 # weight decay | default: 2e-3
 
     if optimizer_name == "sgd":
         optimizer = SGD(all_params, lr=lr, weight_decay=wd, momentum=0.9)
