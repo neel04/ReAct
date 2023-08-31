@@ -64,8 +64,11 @@ class ProgressiveLossGenerator:
                 y = randrange(max_iters // 2, int(max_iters * 1.5))
 
                 _, interim_thought = self.net(inputs, iters_to_do=j)
-                interim_thought, num_errors = self.perturber.perturb(interim_thought) # Adversarial perturbation
-                _, interim_thought = self.net(inputs, iters_to_do=y, interim_thought=interim_thought)
+
+                with torch.enable_grad(): # enable gradients for adversarial perturbation
+                    interim_thought, num_errors = self.perturber.perturb(interim_thought) # Adversarial perturbation
+
+                _, interim_thought = self.net(inputs, iters_to_do=y, interim_thought=interim_thought.detach())
 
             elif n > 0:
                 _, interim_thought = self.net(inputs, iters_to_do=n)
