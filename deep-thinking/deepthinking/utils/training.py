@@ -60,14 +60,19 @@ class ProgressiveLossGenerator:
         with torch.no_grad():
             if choices([True, False], [p, 1 - p])[0]:
                 # Run the net for anywhere between max_iters and 2.5 * max_iters iterations
-                _, interim_thought = self.net(inputs, iters_to_do=randrange(max_iters, int(1.5 * max_iters)))
+                j = randrange(1, max_iters // 2)
+                y = randrange(max_iters // 2, int(max_iters * 1.5))
+
+                _, interim_thought = self.net(inputs, iters_to_do=j)
+                interim_thought, num_errors = self.perturber.perturb(interim_thought) # Adversarial perturbation
+                _, interim_thought = self.net(inputs, iters_to_do=y, interim_thought=interim_thought)
 
             elif n > 0:
                 _, interim_thought = self.net(inputs, iters_to_do=n)
         
         # Adversarial perturbation
-        if n > 5 and self.epoch > 100:
-            interim_thought, num_errors = self.perturber.perturb(interim_thought)
+        #if n > 5 and self.epoch > 100:
+            #interim_thought, num_errors = self.perturber.perturb(interim_thought)
 
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
