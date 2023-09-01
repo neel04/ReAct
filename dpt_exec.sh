@@ -17,7 +17,6 @@
 
 # Training on a slurm cluster
 # Personal WANDB API key
-export WANDB_API_KEY=06af347f2f75679eaa6527711464b33792135f54
 export MASTER_PORT=29450
 # obtain the IP address of the master node
 export MASTER_ADDR=$(hostname -i)
