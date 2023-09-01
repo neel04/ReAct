@@ -74,8 +74,8 @@ class ProgressiveLossGenerator:
                 _, interim_thought = self.net(inputs, iters_to_do=n)
         
         # Adversarial perturbation
-        #if n > 5 and self.epoch > 100:
-            #interim_thought, num_errors = self.perturber.perturb(interim_thought)
+        if n > 5 and self.epoch > 100:
+            interim_thought, num_errors = self.perturber.perturb(interim_thought)
 
         # Run for k iterations. This implies the net has to fix the perturbed errors as well as its own
         outputs, _ = self.net(inputs, iters_elapsed=n, iters_to_do=k, interim_thought=interim_thought)
