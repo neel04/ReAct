@@ -57,7 +57,7 @@ cd /workspace; ./vast stop instance ${VAST_CONTAINERLABEL:2}
 
 Credits go to Avi Schwarzchild's and Arpit Bansal's (et al.) repository on which this code is built on. Check out their amazing work [here!](https://github.com/aks2203/deep-thinking)
 
-Huge thanks to [Algovera.ai](Algovera.ai) for sponsoring this project 🚀!
+Huge thanks to [Algovera.ai](https://app.algovera.ai/) for sponsoring this project 🚀!
 
 ## Important commands
 Docker container command:
