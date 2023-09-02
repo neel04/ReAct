@@ -1,0 +1,5 @@
+{
+    "DockerRun.DisableAutoGenerateConfig": true,
+    "python.linting.enabled": false,
+    "python.analysis.typeCheckingMode": "basic"
+}

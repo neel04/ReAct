@@ -47,7 +47,7 @@ class Lion(Optimizer):
         self.update_fn = update_fn
 
         if use_triton:
-            from lion_pytorch.triton import update_fn as triton_update_fn
+            from .lion_triton import update_fn as triton_update_fn
             self.update_fn = triton_update_fn
 
     @torch.no_grad()

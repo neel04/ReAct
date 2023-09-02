@@ -11,7 +11,6 @@
 import os
 import logging
 import random
-import web_pdb as pdb
 from datetime import datetime
 
 import torch
@@ -73,10 +72,10 @@ def get_model(model, width, max_iters, in_channels=3):
     return net
 
 
-def get_optimizer(optim_args, model_args, net, state_dict):
+def get_optimizer(optim_args, model_args, net, state_dict, accelerator):
     optimizer_name = optim_args.optimizer.lower()
     epochs = optim_args.epochs
-    lr = optim_args.lr
+    lr = optim_args.lr * accelerator.num_processes # scale learning rate by number of processes
     lr_decay = optim_args.lr_decay
     lr_schedule = optim_args.lr_schedule
     lr_factor = optim_args.lr_factor
@@ -95,18 +94,22 @@ def get_optimizer(optim_args, model_args, net, state_dict):
         iters = 1
         all_params = [{"params": base_params}]
 
+    wd = 3e-3 # weight decay | default: 2e-3
+
     if optimizer_name == "sgd":
-        optimizer = SGD(all_params, lr=lr, weight_decay=2e-3, momentum=0.9)
+        optimizer = SGD(all_params, lr=lr, weight_decay=wd, momentum=0.9)
     elif optimizer_name == "adam":
-        optimizer = Adam(all_params, lr=lr, weight_decay=2e-3)
+        optimizer = Adam(all_params, lr=lr, weight_decay=wd)
     elif optimizer_name == "adamw":
-        optimizer = AdamW(all_params, lr=lr, weight_decay=2e-3)
+        optimizer = AdamW(all_params, lr=lr, weight_decay=wd)
     elif optimizer_name == "lion":
-        optimizer = Lion(all_params, lr=lr, weight_decay=2e-3, betas=(0.9, 0.99))
+        optimizer = Lion(all_params, lr=lr, weight_decay=wd, betas=(0.9, 0.99), use_triton=True)
     elif optimizer_name == "adam_on_lion":
-        optimizer = AdamOnLion(all_params, lr=lr, weight_decay=2e-3, betas=(0.9, 0.99))
+        optimizer = AdamOnLion(all_params, lr=lr, weight_decay=wd, betas=(0.9, 0.99))
+    elif optimizer_name == "adamw_amsgrad":
+        optimizer = AdamW(all_params, lr=lr, weight_decay=wd, amsgrad=True)
     else:
-        raise ValueError(f"{ic.format()}: Optimizer choise of {optimizer_name} not yet implmented.")
+        raise ValueError(f"{ic.format()}: Optimizer choice of {optimizer_name} not yet implmented.")
 
     if state_dict is not None:
         optimizer.load_state_dict(state_dict)
@@ -128,7 +131,7 @@ def get_optimizer(optim_args, model_args, net, state_dict):
     return optimizer, warmup_scheduler, lr_scheduler
 
 
-def load_model_from_checkpoint(problem, model_args, device):
+def load_model_from_checkpoint(problem, model_args, device, accelerator):
     model = model_args.model
     model_path = model_args.model_path
     width = model_args.width
@@ -146,7 +149,7 @@ def load_model_from_checkpoint(problem, model_args, device):
     net = get_model(model, width, in_channels=in_channels, max_iters=max_iters)
     net = net.to(device)
     if device == "cuda":
-        net = torch.nn.DataParallel(net)
+        net = net
     
     if model_path is not None and os.path.exists(model_path):
         logging.info(f"\n{'$'*50}\nLoading model from checkpoint {model_path}...\n{'$'*50}")
@@ -165,10 +168,9 @@ def load_model_from_checkpoint(problem, model_args, device):
         net.load_state_dict(new_state_dict["net"])
         epoch = new_state_dict["epoch"] + 1
         optimizer = new_state_dict["optimizer"]
+        accelerator.load_state(f"/fsx/DPT/outputs/{model_path}")
 
-    # load AMP scaler
-    scaler = new_state_dict["scaler"] if "scaler" in new_state_dict.keys() else None
-    return net, epoch, optimizer, scaler
+    return net, epoch, optimizer, accelerator
 
 
 def now():

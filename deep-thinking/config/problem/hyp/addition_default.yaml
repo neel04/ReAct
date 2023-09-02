@@ -1,17 +1,17 @@
-alpha: 0.5
-clip: 1
-epochs: 400
-lr: 9e-5 # 5e-4 does get to 98% elemennwise accuracy in 100 epochs
+alpha: 0.7 # alpha ∝ weight of progressive loss
+clip: 2
+epochs: 350
+lr: 9e-4 # AdamW -> 9e-4 is decent | Linear scaling rule - New_lr = lr * (new_batch_size / old_bsz)
 lr_decay: cosine
 lr_factor: 0.1
 lr_schedule: #  CosineAnnealingLR Doesn't use this param
   - 2
 lr_throttle: False
-optimizer: lion
-save_period: -1
-test_batch_size: 1280
+optimizer: adamw
+save_period: 15
+test_batch_size: 256
 test_mode: default
-train_batch_size: 1280
+train_batch_size: 256
 train_mode: progressive
-val_period: 20
-warmup_period: 8 # We use Cosine warmup for the first 5 epochs
+val_period: 15
+warmup_period: 8 # We use Cosine warmup for the first 8 epochs, low warmup for DDP
