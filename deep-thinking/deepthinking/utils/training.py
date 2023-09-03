@@ -55,7 +55,7 @@ class ProgressiveLossGenerator:
         num_errors = [0] # empty default for logging purposes
 
         # Iteration priming
-        p = 0.15
+        p = 0.25
 
         with torch.no_grad():
             if choices([True, False], [p, 1 - p])[0]:

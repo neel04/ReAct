@@ -20,19 +20,19 @@ To reproduce the training runs: Find the precise commit id you want to replicate
 2. Paste this as the `onstart.sh` script. Make sure to fill in the appropriate VAST and Wandb.ai key:
 
 ```shell
-export VAST_API_KEY = ...
-export WANDB_API_KEY = ...
-export TASK = ... # refers to the branches of repo. "main" is `bAdd`, then `reverse_string` and `prefix_sum`
+export VAST_API_KEY=...
+export WANDB_API_KEY=...
+export TASK="main"  # refers to the branches of repo. "main" is `bAdd`, then `reverse_string` and `prefix_sum`
 
 cd /workspace/
 rm -rf /fsx/
 
-#VAST config to shutdown instance after the job is done
+# VAST config to shutdown instance after the job is done
 wget https://raw.githubusercontent.com/vast-ai/vast-python/master/vast.py -O vast; chmod +x vast;
 echo $VAST_API_KEY > ~/.vast_api_key
 
 # Clone ReAct repository and move it to /fsx/awesome/DPT/
-git clone -b $TASK https://neel04/ReAct.git /fsx/awesome/DPT/
+git clone -b $TASK https://github.com/neel04/ReAct.git /fsx/awesome/DPT/
 # Create a directory for the outputs
 mkdir -p /fsx/awesome/DPT/outputs
 
@@ -43,7 +43,9 @@ cd /fsx/awesome/DPT
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
 
 # Run React training
+chmod +x ./dpt_exec.sh
 sh ./dpt_exec.sh
+
 # Stop the instance
 cd /workspace; ./vast stop instance ${VAST_CONTAINERLABEL:2}
 ```
